@@ -292,12 +292,11 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Pointer push button
     QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");
     
-    // Zoom In push button
-    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In");
+    // The Pointer/Zoom In/Zoom Out buttons form a button group
+    QButtonGroup *mouseUsage = new QButtonGroup(separator);
+    mouseUsage->addButton(pointerPB, Chart::MouseUsageScroll);
+    connect(mouseUsage, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
     
-    // Zoom Out push button
-    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out");
-
     // Use the same action hanlder for all controls
 
     const QObjectList &allControls = leftPanel->children();
@@ -312,7 +311,13 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
             connect(obj, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
         else if ((obj = qobject_cast<QScrollBar *>(allControls[i])) != 0)
             connect(obj, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
+        else if ((obj = qobject_cast<QButtonGroup *>(allControls[i])) != 0)
+            connect(obj, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
     }
+    connect(m_ChartViewer, SIGNAL(viewPortChanged()), SLOT(onViewPortChanged()));
+    //connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
+    connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
+    
 
     // Update the chart
     drawChart(m_ChartViewer);
@@ -396,8 +401,8 @@ void FinanceDemo::updateControls(QChartViewer *viewer)
 //
 void FinanceDemo::onMouseMovePlotArea(QMouseEvent *)
 {
-    //financedemo((MultiChart *)m_ChartViewer->getChart(), m_ChartViewer->getPlotAreaMouseX());
-    //m_ChartViewer->updateDisplay();
+    financedemo((MultiChart *)m_ChartViewer->getChart(), m_ChartViewer->getPlotAreaMouseX());
+    m_ChartViewer->updateDisplay();
 }
 
 //
@@ -423,8 +428,18 @@ void FinanceDemo::onViewPortChanged()
     // We need to update the track line too. If the mouse is moving on the chart (eg. if
     // the user drags the mouse on the chart to scroll it), the track line will be updated
     // in the MouseMovePlotArea event. Otherwise, we need to update the track line here.
-    //if (m_ChartViewer->needUpdateImageMap())
-     //   updateImageMap(m_ChartViewer);
+    if (m_ChartViewer->needUpdateImageMap())
+        updateImageMap(m_ChartViewer);
+}
+
+void FinanceDemo::updateImageMap(QChartViewer *viewer)
+{
+    // Include tool tip for the chart
+    if (0 == viewer->getImageMapHandler())
+    {
+        viewer->setImageMap(viewer->getChart()->getHTMLImageMap("", "",
+            "title='[{dataSetName}] {x|mmm dd, yyyy}: USD {value|2}'"));
+    }
 }
 
 //
@@ -467,6 +482,210 @@ void FinanceDemo::onMouseWheelChart(QWheelEvent *event)
         m_ChartViewer->setViewPortHeight(newVpHeight);
 
         m_ChartViewer->updateViewPort(true, false);
+    }
+}
+
+
+//
+// Draw finance chart track line with legend
+//
+void FinanceDemo::financedemo(MultiChart *m, int mouseX)
+{
+    //cout << "mouseX" << mouseX << "\n";
+    // Clear the current dynamic layer and get the DrawArea object to draw on it.
+    DrawArea *d = m->initDynamicLayer();
+
+    // It is possible for a FinanceChart to be empty, so we need to check for it.
+    if (m->getChartCount() == 0)
+        return ;
+	//cout << "Chart count: " << m->getChartCount() << "\n" ;
+    // Get the data x-value that is nearest to the mouse
+    int xValue = (int)(((XYChart *)m->getChart(0))->getNearestXValue(mouseX));//layer
+    //cout << "(XYChart *)m->getChart(0): " << (XYChart *)m->getChart(0) << "\n";
+    //cout << "xValue: " << xValue << "\n";
+	//cout << "xValue: " << xValue << "\n";
+    // Iterate the XY charts (main price chart and indicator charts) in the FinanceChart
+    XYChart *c = 0;
+    for(int i = 0; i < m->getChartCount(); ++i) 
+    {
+        //cout << "IIIIiiii" << i << "\n";
+        c = (XYChart *)m->getChart(i);
+        //cout << "XYCHART: " << c << "\n";
+
+        // Variables to hold the legend entries
+        ostringstream ohlcLegend;
+        vector<string> legendEntries;
+
+        // Iterate through all layers to find the highest data point
+        for(int j = 0; j < c->getLayerCount(); ++j) 
+        {
+            //cout << "JJJJjjjj" << j << "\n";
+            //cout << "layer count: " << c->getLayerCount() << "\n";
+            Layer *layer = c->getLayerByZ(j);
+            //cout << "Layer: " << layer << "\n";
+            int xIndex = layer->getXIndexOf(xValue);
+            //cout << "xIndex: " << xIndex << "\n";
+            int dataSetCount = layer->getDataSetCount();
+            //cout << "data set count: " << dataSetCount << "\n";
+
+            // In a FinanceChart, only layers showing OHLC data can have 4 data sets
+            if (dataSetCount == 4) 
+            {
+                double highValue = layer->getDataSet(0)->getValue(xIndex);
+                //cout << "high: " << highValue << "\n";
+                double lowValue = layer->getDataSet(1)->getValue(xIndex);
+                //cout << "low: " << lowValue << "\n";
+                double openValue = layer->getDataSet(2)->getValue(xIndex);
+                //cout << "open: " << openValue << "\n";
+                double closeValue = layer->getDataSet(3)->getValue(xIndex);
+                //cout << "close: " << closeValue << "\n";
+				
+				//cout << "Chart noValue: " << Chart::NoValue << "\n";
+                if (closeValue != Chart::NoValue) 
+                {
+                    // Build the OHLC legend
+					ohlcLegend << "      <*block*>";
+					ohlcLegend << "Open: " << c->formatValue(openValue, "{value|P4}");
+					ohlcLegend << ", High: " << c->formatValue(highValue, "{value|P4}"); 
+					ohlcLegend << ", Low: " << c->formatValue(lowValue, "{value|P4}"); 
+					ohlcLegend << ", Close: " << c->formatValue(closeValue, "{value|P4}");
+					//cout << "Display open: " << c->formatValue(openValue, "{value|P4}") << "\n";
+					//cout << "Display high: " << c->formatValue(highValue, "{value|P4}") << "\n";
+					//cout << "Display low: " << c->formatValue(lowValue, "{value|P4}") << "\n";
+					//cout << "Display close: " << c->formatValue(closeValue, "{value|P4}") << "\n";
+					
+                    // We also draw an upward or downward triangle for up and down days and the %
+                    // change
+                    double lastCloseValue = layer->getDataSet(3)->getValue(xIndex - 1);
+                    //cout << "Last Close Value: " << lastCloseValue << "\n";
+                    if (lastCloseValue != Chart::NoValue) 
+                    {
+                        double change = closeValue - lastCloseValue;
+                        //double percent = change * 100 / closeValue;
+                        //cout << "Percent" << percent << "\n";
+                        string symbol = (change >= 0) ?
+                            "<*font,color=008800*><*img=@triangle,width=8,color=008800*>" :
+                            "<*font,color=CC0000*><*img=@invertedtriangle,width=8,color=CC0000*>";
+
+                        ohlcLegend << "  " << symbol << " " << c->formatValue(change, "{value|P4}");
+                    }
+
+					ohlcLegend << "<*/*>";
+                }
+            } 
+            else 
+            {
+                // Iterate through all the data sets in the layer
+                for(int k = 0; k < layer->getDataSetCount(); ++k)
+                {
+                    DataSet *dataSet = layer->getDataSetByZ(k);
+					//cout << "Dataset by Z: " << dataset << "\n";
+                    string name = dataSet->getDataName();
+                    //cout << "Dataset Name: " << name << "\n";
+                    double value = dataSet->getValue(xIndex);
+                    //cout << "Data set Value: " << value << "\n";
+                    //cout << "name size: " << name.size() << "\n";
+                    if ((0 != name.size()) && (value != Chart::NoValue)) 
+                    {
+                        // In a FinanceChart, the data set name consists of the indicator name and its
+                        // latest value. It is like "Vol: 123M" or "RSI (14): 55.34". As we are
+                        // generating the values dynamically, we need to extract the indictor name
+                        // out, and also the volume unit (if any).
+
+						// The volume unit
+						string unitChar;
+						//cout << "unit char: " << unitChar << "\n";
+
+                        // The indicator name is the part of the name up to the colon character.
+						int delimiterPosition = (int)name.find(':');
+						//cout << "delimiter position " << delimiterPosition << "\n";
+						//cout << "name nPOS: " << name.npos << "\n";
+                        if ((int)name.npos != delimiterPosition) 
+                        {							
+							// The unit, if any, is the trailing non-digit character(s).
+							int lastDigitPos = (int)name.find_last_of("0123456789");
+							//cout << "Last digit position: " << lastDigitPos << "\n";
+                            if (((int)name.npos != lastDigitPos) && (lastDigitPos + 1 < (int)name.size())
+                                && (lastDigitPos > delimiterPosition))
+								unitChar = name.substr(lastDigitPos + 1);
+								//cout << "unit char 2: " << unitChar << "\n";
+
+							name.resize(delimiterPosition);
+                        }
+
+                        // In a FinanceChart, if there are two data sets, it must be representing a
+                        // range.
+                        if (dataSetCount == 2) 
+                        {
+                            // We show both values in the range in a single legend entry
+                            value = layer->getDataSet(0)->getValue(xIndex);
+                            //cout << "value22: " << value << "\n";
+                            double value2 = layer->getDataSet(1)->getValue(xIndex);
+                            //cout << "value2: " << value2 << "\n";
+                            name = name + ": " + c->formatValue(min(value, value2), "{value|P3}");
+							name = name + " - " + c->formatValue(max(value, value2), "{value|P3}");
+                        } 
+                        else 
+                        {
+                            // In a FinanceChart, only the layer for volume bars has 3 data sets for
+                            // up/down/flat days
+                            if (dataSetCount == 3) 
+                            {
+                                // The actual volume is the sum of the 3 data sets.
+                                value = layer->getDataSet(0)->getValue(xIndex) + layer->getDataSet(1
+                                    )->getValue(xIndex) + layer->getDataSet(2)->getValue(xIndex);
+                                //cout << "value in if1: " << value << "\n";
+                                //cout << "layer->getDataSet(0)->getValue(xIndex): " << layer->getDataSet(0)->getValue(xIndex) << "\n";
+                                //cout << "layer->getDataSet(1)->getValue(xIndex): " << layer->getDataSet(1)->getValue(xIndex) << "\n";
+                                //cout << "layer->getDataSet(2)->getValue(xIndex): " << layer->getDataSet(1)->getValue(xIndex) << "\n";                                    
+                            }
+
+                            // Create the legend entry
+                            name = name + ": " + c->formatValue(value, "{value|P3}") + unitChar;
+                            //cout << "name legend entry: " << name << "\n";
+                        }
+
+                        // Build the legend entry, consist of a colored square box and the name (with
+                        // the data value in it).
+						ostringstream legendEntry;
+						legendEntry << "<*block*><*img=@square,width=8,edgeColor=000000,color=" 
+							<< hex << dataSet->getDataColor() << "*> " << name << "<*/*>";
+						//cout << "legend Entry: " << legendEntry << "\n";	
+                        legendEntries.push_back(legendEntry.str());
+                    }
+                }
+            }
+        }
+
+        // Get the plot area position relative to the entire FinanceChart
+        PlotArea *plotArea = c->getPlotArea();
+        //cout << "plot area: " << plotArea << "\n";
+        int plotAreaLeftX = plotArea->getLeftX() + c->getAbsOffsetX();
+        //cout << "plot area leftx: " << plotAreaLeftX << "\n";
+        int plotAreaTopY = plotArea->getTopY() + c->getAbsOffsetY();
+        //cout << "plot area topy: " << plotAreaTopY << "\n";
+
+		// The legend begins with the date label, then the ohlcLegend (if any), and then the
+		// entries for the indicators.
+		ostringstream legendText;
+		legendText << "<*block,valign=top,maxWidth=" << (plotArea->getWidth() - 5) 
+			<< "*><*font=arialbd.ttf*>[" << c->xAxis()->getFormattedLabel(xValue, "mmm dd, yyyy")
+			<< "]<*/font*>" << ohlcLegend.str();
+		for (int i = ((int)legendEntries.size()) - 1; i >= 0; --i)
+		{
+			legendText << "      " << legendEntries[i];
+			//cout << "legend text: " << legendText << "\n";
+		}
+		legendText << "<*/*>";
+
+        // Draw a vertical track line at the x-position
+        d->vline(plotAreaTopY, plotAreaTopY + plotArea->getHeight(), c->getXCoor(xValue) +
+            c->getAbsOffsetX(), d->dashLineColor(0x000000, 0x0101));
+
+        // Display the legend on the top of the plot area
+        TTFText *t = d->text(legendText.str().c_str(), "arial.ttf", 8);
+        t->draw(plotAreaLeftX + 5, plotAreaTopY + 3, 0x000000, Chart::TopLeft);
+		t->destroy();
     }
 }
 
