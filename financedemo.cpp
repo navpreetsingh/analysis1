@@ -63,7 +63,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     //
     // Initialize member variables
     //
-
+    /*
     m_noOfPoints = 0;
     m_timeStamps = 0;
     m_highData = 0;
@@ -76,7 +76,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
 
     m_compareData = 0;
     m_compareDataLen = 0;
-
+    */
     //
     // Set up the GUI
     //
@@ -110,7 +110,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
 
     // Ticker Symbol
     (new QLabel("Ticker Symbol", leftPanel))->setGeometry(8, 10, 140, 18);
-    m_TickerSymbol = new QLineEdit("ASE", leftPanel);
+    m_TickerSymbol = new QLineEdit("AAPL", leftPanel);
     m_TickerSymbol->setGeometry(8, 26, 140, 20);
 
     // Compare With
@@ -315,12 +315,29 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
             connect(obj, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
     }
     connect(m_ChartViewer, SIGNAL(viewPortChanged()), SLOT(onViewPortChanged()));
-    //connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
+    connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
     connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
     
 
     // Update the chart
     drawChart(m_ChartViewer);
+
+    //
+    // Initialize the chart
+    //
+    
+    // Load the data
+    char symbol[100] = "/home/navpreet/major_project/navpreet/Yahoo/AAPL.csv" ;
+    read_data(symbol);   
+
+    // Initialize the QChartViewer
+    initChartViewer(m_ChartViewer);
+
+    // Initially set the mouse to drag to scroll mode
+    pointerPB->click();
+
+    // Trigger the ViewPortChanged event to draw the chart
+    m_ChartViewer->updateViewPort(true, true);
 }
 
 //
@@ -328,13 +345,23 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
 //
 FinanceDemo::~FinanceDemo()
 {
-    delete[] m_timeStamps;
-    delete[] m_highData;
-    delete[] m_lowData;
-    delete[] m_openData;
-    delete[] m_closeData;
-    delete[] m_volData;
-    delete[] m_compareData;
+    delete m_ChartViewer->getChart();
+}
+
+//
+// Initialize the QChartViewer
+//
+void FinanceDemo::initChartViewer(QChartViewer *viewer)
+{
+    // Set the full x range to be the duration of the data
+    viewer->setFullRange("x", date[0], date[data_len]);
+
+    // Initialize the view port to show the latest 20% of the time range
+    viewer->setViewPortWidth(0.04);
+    viewer->setViewPortLeft(1 - viewer->getViewPortWidth());
+
+    // Set the maximum zoom to 10 points
+    viewer->setZoomInWidthLimit(50.0 / data_len);
 }
 
 void FinanceDemo::onCheckBoxChanged()
@@ -702,7 +729,7 @@ void FinanceDemo::financedemo(MultiChart *m, int mouseX)
 /// <param name="extraPoints">The extra leading data points needed in order to
 /// compute moving averages.</param>
 /// <returns>True if successfully obtain the data, otherwise false.</returns>
-bool FinanceDemo::getData(const QString &ticker, QDateTime startDate, QDateTime endDate,
+/*bool FinanceDemo::getData(const QString &ticker, QDateTime startDate, QDateTime endDate,
                           int durationInDays, int extraPoints)
 {
     // This method should return false if the ticker symbol is invalid. In this
@@ -907,7 +934,7 @@ void FinanceDemo::aggregateData(ArrayMath &aggregator)
     aggregator.aggregate(DoubleArray(m_volData, m_noOfPoints), Chart::AggregateSum);
     m_noOfPoints = aggregator.aggregate(DoubleArray(m_timeStamps, m_noOfPoints),
         Chart::AggregateFirst).len;
-}
+}*/
 
 /////////////////////////////////////////////////////////////////////////////
 // Chart Creation
@@ -1037,7 +1064,7 @@ static void errMsg(QChartViewer* viewer, const char *msg)
 /// <param name="viewer">The ChartViewer object to display the chart.</param>
 void FinanceDemo::drawChart(QChartViewer *viewer)
 {
-    // In this demo, we just assume we plot up to the latest time. So endDate is now.
+    /*// In this demo, we just assume we plot up to the latest time. So endDate is now.
     QDateTime endDate = QDateTime::currentDateTime();
 
     // If the trading day has not yet started (before 9:30am), or if the end date is on
@@ -1067,7 +1094,23 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
                 startDate = startDate.addDays(-1);
             }
         }
-    }
+    }*/
+
+    // Get the start date and end date that are visible on the chart.
+    double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
+    double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() +
+        viewer->getViewPortWidth());
+
+    // Get the array indexes that corresponds to the visible start and end dates
+    int startIndex = (int)floor(Chart::bSearch(DoubleArray(date, data_len), viewPortStartDate));
+    int endIndex = (int)ceil(Chart::bSearch(DoubleArray(date, data_len), viewPortEndDate));
+    int noOfPoints = endIndex - startIndex + 1;
+    
+    
+    char symbol[150];
+    sprintf(symbol,"/home/navpreet/major_project/navpreet/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    cout<<"symbol"<<symbol << "\n";
+    read_data(symbol);
 
     // The first moving average period selected by the user.
     m_avgPeriod1 = m_MovAvg1->text().toInt();
@@ -1089,7 +1132,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
         extraPoints = 25;
 
     // Get the data series to compare with, if any.
-    m_compareKey = m_CompareWith->text();
+    /*m_compareKey = m_CompareWith->text();
     delete[] m_compareData;
     m_compareData = 0;
     if (getData(m_compareKey, startDate, endDate, durationInDays, extraPoints))
@@ -1097,10 +1140,10 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
             m_compareData = m_closeData;
             m_compareDataLen = m_noOfPoints;
             m_closeData = 0;
-    }
+    }*/
 
     // The data series we want to get.
-    m_tickerKey = m_TickerSymbol->text();
+    /*m_tickerKey = m_TickerSymbol->text();
     if (!getData(m_tickerKey, startDate, endDate, durationInDays, extraPoints))
     {
             errMsg(viewer, "Please enter a valid ticker symbol");
@@ -1143,7 +1186,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
             delete[] m_timeStamps;
             m_timeStamps = extendedTimeStamps;
         }
-    }
+    }*/
 
     //
     // At this stage, all data is available. We can draw the chart as according to
@@ -1182,9 +1225,21 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     }
 
     // Create the chart object using the selected size
-    FinanceChart m(width);
+    FinanceChart *m = new FinanceChart(width);
 
-    // Set the data into the chart object
+    // Add a title to the chart
+    if(data_len <= 0)
+        m->addTitle("INVALID SYMBOL");    
+    else
+        m->addTitle(Chart::TopCenter, m_TickerSymbol->text().toLocal8Bit().data());
+
+    // Disable default legend box, as we are using dynamic legend
+    m->setLegendStyle("normal", 8, Chart::Transparent, Chart::Transparent);
+    
+    // Set the data into the finance chart object
+    m->setData(DoubleArray(date + startIndex, noOfPoints), DoubleArray(high + startIndex, noOfPoints), DoubleArray(low + startIndex, noOfPoints), DoubleArray(open + startIndex, noOfPoints), DoubleArray(close + startIndex, noOfPoints), DoubleArray(volume + startIndex, noOfPoints), 30);
+
+    /*// Set the data into the chart object
     m.setData(DoubleArray(m_timeStamps, m_noOfPoints + extraTrailingPoints),
         DoubleArray(m_highData, m_noOfPoints), DoubleArray(m_lowData, m_noOfPoints),
         DoubleArray(m_openData, m_noOfPoints), DoubleArray(m_closeData, m_noOfPoints),
@@ -1211,53 +1266,53 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     sprintf(buffer, "<*font=arial.ttf,size=8*>%s - %s chart", m.formatValue(
         QDateTimeToChartTime(QDateTime::currentDateTime()), "mmm dd, yyyy"), resolutionText);
     m.addPlotAreaTitle(Chart::BottomLeft, buffer);
-
+    */
     // A copyright message at the bottom left corner the title area
-    m.addPlotAreaTitle(Chart::BottomRight,
+    m->addPlotAreaTitle(Chart::BottomRight,
         "<*font=arial.ttf,size=8*>(c) Advanced Software Engineering");
-
+    
     //
     // Add the first techical indicator according. In this demo, we draw the first
     // indicator on top of the main chart.
     //
-    addIndicator(&m, m_Indicator1->itemData(m_Indicator1->currentIndex()).toString(),
+    addIndicator(m, m_Indicator1->itemData(m_Indicator1->currentIndex()).toString(),
                  indicatorHeight);
 
         //
     // Add the main chart
         //
-    m.addMainChart(mainHeight);
+    m->addMainChart(mainHeight);
 
     //
     // Set log or linear scale according to user preference
     //
-    m.setLogScale(m_LogScale->isChecked());
+    m->setLogScale(m_LogScale->isChecked());
 
         //
         // Set axis labels to show data values or percentage change to user preference
         //
         if (m_PercentageScale->isChecked())
-                m.setPercentageAxis();
+                m->setPercentageAxis();
 
         //
     // Draw the main chart depending on the chart type the user has selected
     //
     QString selectedType = m_ChartType->itemData(m_ChartType->currentIndex()).toString();
     if (selectedType == "Close")
-        m.addCloseLine(0x000040);
+        m->addCloseLine(0x000040);
     else if (selectedType == "TP")
-        m.addTypicalPrice(0x000040);
+        m->addTypicalPrice(0x000040);
     else if (selectedType == "WC")
-        m.addWeightedClose(0x000040);
+        m->addWeightedClose(0x000040);
     else if (selectedType == "Median")
-        m.addMedianPrice(0x000040);
+        m->addMedianPrice(0x000040);
 
     //
     // Add comparison line if there is data for comparison
     //
     if (m_compareData != 0) {
         if (m_compareDataLen > extraPoints) {
-            m.addComparison(DoubleArray(m_compareData, m_compareDataLen), 0x0000ff,
+            m->addComparison(DoubleArray(m_compareData, m_compareDataLen), 0x0000ff,
                 m_compareKey.toUtf8().data());
         }
     }
@@ -1265,9 +1320,9 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     //
     // Add moving average lines.
     //
-    addMovingAvg(&m, m_AvgType1->itemData(m_AvgType1->currentIndex()).toString(),
+    addMovingAvg(m, m_AvgType1->itemData(m_AvgType1->currentIndex()).toString(),
                  m_avgPeriod1, 0x663300);
-    addMovingAvg(&m, m_AvgType2->itemData(m_AvgType2->currentIndex()).toString(),
+    addMovingAvg(m, m_AvgType2->itemData(m_AvgType2->currentIndex()).toString(),
                  m_avgPeriod2, 0x9900ff);
 
     //
@@ -1276,48 +1331,134 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     // (that is, the moving average lines stay on top.)
     //
     if (selectedType == "CandleStick")
-        m.addCandleStick(0x33ff33, 0xff3333);
+        m->addCandleStick(0x33ff33, 0xff3333);
     else if (selectedType == "OHLC")
-        m.addHLOC(0x8000, 0x800000);
+        m->addHLOC(0x8000, 0x800000);
 
     //
     // Add parabolic SAR if necessary
     //
     if (m_ParabolicSAR->isChecked())
-        m.addParabolicSAR(0.02, 0.02, 0.2, Chart::DiamondShape, 5, 0x008800, 0x000000);
+        m->addParabolicSAR(0.02, 0.02, 0.2, Chart::DiamondShape, 5, 0x008800, 0x000000);
 
     //
     // Add price band/channel/envelop to the chart according to user selection
     //
     QString selectedBand = m_PriceBand->itemData(m_PriceBand->currentIndex()).toString();
     if (selectedBand == "BB")
-        m.addBollingerBand(20, 2, 0x9999ff, 0xc06666ff);
+        m->addBollingerBand(20, 2, 0x9999ff, 0xc06666ff);
     else if (selectedBand == "DC")
-        m.addDonchianChannel(20, 0x9999ff, 0xc06666ff);
+        m->addDonchianChannel(20, 0x9999ff, 0xc06666ff);
     else if (selectedBand == "Envelop")
-        m.addEnvelop(20, 0.1, 0x9999ff, 0xc06666ff);
+        m->addEnvelop(20, 0.1, 0x9999ff, 0xc06666ff);
 
     //
     // Add volume bars to the main chart if necessary
     //
     if (m_VolumeBars->isChecked())
-        m.addVolBars(indicatorHeight, 0x99ff99, 0xff9999, 0xc0c0c0);
+        m->addVolBars(indicatorHeight, 0x99ff99, 0xff9999, 0xc0c0c0);
 
     //
     // Add additional indicators as according to user selection.
     //
-    addIndicator(&m, m_Indicator2->itemData(m_Indicator2->currentIndex()).toString(),
+    addIndicator(m, m_Indicator2->itemData(m_Indicator2->currentIndex()).toString(),
                  indicatorHeight);
-    addIndicator(&m, m_Indicator3->itemData(m_Indicator3->currentIndex()).toString(),
+    addIndicator(m, m_Indicator3->itemData(m_Indicator3->currentIndex()).toString(),
                  indicatorHeight);
-    addIndicator(&m, m_Indicator4->itemData(m_Indicator4->currentIndex()).toString(),
+    addIndicator(m, m_Indicator4->itemData(m_Indicator4->currentIndex()).toString(),
                  indicatorHeight);
+
+    // Include track line with legend for the latest data values
+    financedemo(m, ((XYChart *)m->getChart(0))->getPlotArea()->getRightX());
 
     // Set the chart to the viewer
-    viewer->setChart(&m);
+    viewer->setChart(m);
 
-    // Set image map (for tool tips) to the viewer
+    /*// Set image map (for tool tips) to the viewer
     sprintf(buffer, "title='%s {value|P}'", m.getToolTipDateFormat());
-    viewer->setImageMap(m.getHTMLImageMap("", "", buffer));
+    viewer->setImageMap(m.getHTMLImageMap("", "", buffer));*/
 }
 
+void FinanceDemo :: read_data(char *symbol)
+{
+    ifstream file (symbol);
+    string value;
+    struct tm tm1;
+    
+    //ELIMINATE FIRST ROW
+    int i;
+    for(i = 0; i < 6; i++)
+        getline(file, value, ',');
+    getline(file, value);                            
+    
+    //GETTING DATA
+    i = 0;
+    while ( getline(file, value, ',') )
+    {
+        
+        sscanf(value.c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
+        //cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+        date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
+        
+        getline(file, value, ',');
+        open[i] = atof(value.c_str());
+        //cout << "open: " << open[i] << '\n';
+        
+        getline(file, value, ',');
+        high[i] = atof(value.c_str());
+        //cout << "high: " << high[i] << '\n';
+        
+        getline(file, value, ',');
+        low[i] = atof(value.c_str());
+        //cout << "low: " << low[i] << '\n';
+        
+        getline(file, value, ',');
+        close[i] = atof(value.c_str());
+        //cout << "close: " << close[i] << '\n';
+        
+        getline(file, value, ',');
+        volume[i] = atoi(value.c_str());
+        //cout << "vol: " << volume[i] << '\n';
+        
+        getline(file, value);
+        adjclose[i] = atof(value.c_str());
+        //cout << "adj-close: " << adjclose[i] << '\n';
+        
+        i++;    
+    }   
+    data_len = i - 1 ;
+    
+    for(i=0; i < data_len/2; i++)
+    {
+        double d_temp;      
+        
+        d_temp = date[i];
+        date[i] = date[data_len - i];
+        date[data_len - i] = d_temp;
+        
+        d_temp = open[i];
+        open[i] = open[data_len - i];
+        open[data_len - i] = d_temp;
+        
+        d_temp = high[i];
+        high[i] = high[data_len - i];
+        high[data_len - i] = d_temp;
+        
+        d_temp = low[i];
+        low[i] = low[data_len - i];
+        low[data_len - i] = d_temp;
+        
+        d_temp = close[i];
+        close[i] = close[data_len - i];
+        close[data_len - i] = d_temp;
+        
+        d_temp = adjclose[i];
+        adjclose[i] = adjclose[data_len - i];
+        adjclose[data_len - i] = d_temp;
+        
+        d_temp = volume[i];
+        volume[i] = volume[data_len - i];
+        volume[data_len - i] = d_temp;      
+    }   
+    cout<<"data len" << data_len << "\n";   
+}

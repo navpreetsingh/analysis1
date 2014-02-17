@@ -37,13 +37,14 @@ public:
 private:
     // TimeStamps, volume, high, low, open and close data
     QString m_tickerKey;
-    double *m_timeStamps;
-    double *m_volData;
-    double *m_highData;
-    double *m_lowData;
-    double *m_openData;
-    double *m_closeData;
-    int m_noOfPoints;
+    double date[5000];
+    double open[5000];
+    double high[5000];
+    double low[5000];
+    double close[5000];
+    double volume[5000];
+    double adjclose[5000];
+    int data_len;       
 
     // An extra data series to compare with the close data
     QString m_compareKey;
@@ -57,7 +58,7 @@ private:
     int m_avgPeriod1;
     int m_avgPeriod2;
 
-    // Routines to get data into the data arrays
+    /*// Routines to get data into the data arrays
     virtual bool getData(const QString &ticker, QDateTime startDate, QDateTime endDate,
             int durationInDays, int extraPoints);
     virtual void get15MinData(const QString &ticker, QDateTime startDate, QDateTime endDate);
@@ -73,7 +74,7 @@ private:
     // In the demo, we just use random numbers for data.
     virtual void generateRandomData(const QString &ticker, QDateTime startDate,
                                     QDateTime endDate, int resolution);
-
+    */
     // The user interface
     QLineEdit *m_TickerSymbol;
     QLineEdit *m_CompareWith;
@@ -95,11 +96,13 @@ private:
     QComboBox *m_Indicator4;
     QChartViewer *m_ChartViewer;
     QScrollBar *m_HScrollBar;
+    QDateEdit *m_StartDate;
+    QDateEdit *m_EndDate;
 
     void drawChart(QChartViewer *viewer);            // Draw chart
 	void financedemo(MultiChart *m, int mouseX);    // Draw Track Cursor
 	void initChartViewer(QChartViewer *viewer);     // Initialize the QChartViewer
-	//void read_data(char* );
+	void read_data(char* );
 	void updateControls(QChartViewer *viewer);      // Update other controls
 	void updateImageMap(QChartViewer *viewer);      // Update the image map	
 
