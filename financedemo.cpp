@@ -327,7 +327,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     //
     
     // Load the data
-    char symbol[100] = "/home/navpreet/major_project/navpreet/Yahoo/AAPL.csv" ;
+    char symbol[100] = "Yahoo/AAPL.csv" ;
     read_data(symbol);   
 
     // Initialize the QChartViewer
@@ -1108,8 +1108,8 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     
     
     char symbol[150];
-    sprintf(symbol,"/home/navpreet/major_project/navpreet/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
-    cout<<"symbol"<<symbol << "\n";
+    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    //cout<<"symbol"<<symbol << "\n";
     read_data(symbol);
 
     // The first moving average period selected by the user.
@@ -1460,5 +1460,5 @@ void FinanceDemo :: read_data(char *symbol)
         volume[i] = volume[data_len - i];
         volume[data_len - i] = d_temp;      
     }   
-    cout<<"data len" << data_len << "\n";   
+    //cout<<"data len" << data_len << "\n";   
 }
