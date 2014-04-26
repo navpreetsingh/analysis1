@@ -164,12 +164,12 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     (new QLabel("Technical Indicators", leftPanel))->setGeometry(8, 409, 140, 18);
     m_Indicator1 = new QComboBox(leftPanel);
     m_Indicator2 = new QComboBox(leftPanel);
-    m_Indicator3 = new QComboBox(leftPanel);
-    m_Indicator4 = new QComboBox(leftPanel);
+    // m_Indicator3 = new QComboBox(leftPanel);
+    // m_Indicator4 = new QComboBox(leftPanel);
     m_Indicator1->setGeometry(8, 425, 140, 20);
     m_Indicator2->setGeometry(8, 446, 140, 20);
-    m_Indicator3->setGeometry(8, 467, 140, 20);
-    m_Indicator4->setGeometry(8, 488, 140, 20);
+    // m_Indicator3->setGeometry(8, 467, 140, 20);
+    // m_Indicator4->setGeometry(8, 488, 140, 20);
 
     QFont labelFont(defaultFont);
     labelFont.setBold(true);
@@ -276,18 +276,20 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     for (int i = 0; i < m_Indicator1->count(); ++i)
     {
         m_Indicator2->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
-        m_Indicator3->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
-        m_Indicator4->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
+        // m_Indicator3->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
+        // m_Indicator4->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
     }
 
     m_Indicator1->setCurrentIndex(m_Indicator1->findData("RSI"));
     m_Indicator2->setCurrentIndex(m_Indicator2->findData("MACD"));
-    m_Indicator3->setCurrentIndex(m_Indicator2->findData("CCI"));
-    m_Indicator4->setCurrentIndex(m_Indicator2->findData("StochRSI"));
+    // m_Indicator3->setCurrentIndex(m_Indicator2->findData("CCI"));
+    // m_Indicator4->setCurrentIndex(m_Indicator2->findData("StochRSI"));
     
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
     m_HScrollBar->setGeometry(165, 728, 1135, 17);
+    connect(m_HScrollBar, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
+
     
     // Pointer push button
     QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");
@@ -308,9 +310,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
         else if ((obj = qobject_cast<QCheckBox *>(allControls[i])) != 0)
             connect(obj, SIGNAL(clicked()), SLOT(onCheckBoxChanged()));
         else if ((obj = qobject_cast<QLineEdit *>(allControls[i])) != 0)
-            connect(obj, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
-        else if ((obj = qobject_cast<QScrollBar *>(allControls[i])) != 0)
-            connect(obj, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
+            connect(obj, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));        
         else if ((obj = qobject_cast<QButtonGroup *>(allControls[i])) != 0)
             connect(obj, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
     }
@@ -1198,8 +1198,8 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     // Default is the large chart size.
     //
     int width = 1135;
-    int mainHeight = 255;
-    int indicatorHeight = 100;
+    int mainHeight = 355;
+    int indicatorHeight = 150;
 
     QString selectedSize = m_ChartSize->itemData(m_ChartSize->currentIndex()).toString();
     if (selectedSize == "S")
@@ -1363,10 +1363,10 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     //
     addIndicator(m, m_Indicator2->itemData(m_Indicator2->currentIndex()).toString(),
                  indicatorHeight);
-    addIndicator(m, m_Indicator3->itemData(m_Indicator3->currentIndex()).toString(),
-                 indicatorHeight);
-    addIndicator(m, m_Indicator4->itemData(m_Indicator4->currentIndex()).toString(),
-                 indicatorHeight);
+    // addIndicator(m, m_Indicator3->itemData(m_Indicator3->currentIndex()).toString(),
+    //              indicatorHeight);
+    // addIndicator(m, m_Indicator4->itemData(m_Indicator4->currentIndex()).toString(),
+    //              indicatorHeight);
 
     // Include track line with legend for the latest data values
     financedemo(m, ((XYChart *)m->getChart(0))->getPlotArea()->getRightX());
