@@ -11,7 +11,7 @@ SOURCES += qchartviewer.cpp \
 HEADERS += qchartviewer.h \
     financedemo.h
 
-INCLUDEPATH += include
+INCLUDEPATH += include /usr/include/mysql /usr/local/include/mysql++
 
 DEFINES += CHARTDIR_HIDE_OBSOLETE _CRT_SECURE_NO_WARNINGS
 
@@ -24,7 +24,7 @@ macx:QMAKE_POST_LINK += cp lib/libchartdir.5.dylib \"`dirname $(TARGET)`/../Fram
 macx:QMAKE_POST_LINK += install_name_tool -change libchartdir.5.dylib \
      \@loader_path/../Frameworks/libchartdir.5.dylib \"$(TARGET)\";
 
-unix:!macx:LIBS += -L lib -lchartdir
+unix:!macx:LIBS += -L lib -lchartdir -L/local/lib -L/usr/lib -lmysqlclient -lmysqlpp -lnsl -lz -lm
 unix:!macx:QMAKE_RPATHDIR += lib
 
 

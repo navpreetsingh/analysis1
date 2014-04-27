@@ -1,29 +1,30 @@
-#include<iostream>
-#include<fstream>
-#include<math.h>
-#include<stdlib.h>
-#include<stdio.h>                                                              
-#include<time.h>  
-#include<string.h>
-#include<QApplication>
-#include<vector>
-#include<sstream>
-#include<algorithm>
-#include<QHBoxLayout>
-#include<QObjectList>
-#include<QDateTime>
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>                                                              
+#include <time.h>  
+#include <string.h>
+#include <QApplication>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+#include <QHBoxLayout>
+#include <QObjectList>
+#include <QDateTime>
 #include <QPushButton>
 #include <QButtonGroup>
 #include <QMouseEvent>
-
-#include"chartdir.h"
-#include"FinanceChart.h"
+#include <mysql++.h>
+#include "chartdir.h"
+#include "FinanceChart.h"
 #include "financedemo.h"
 
 using namespace std;
+using namespace mysqlpp;
 
 int main(int argc, char *argv[])
-{
+{    
     QApplication app(argc, argv);
     FinanceDemo demo;
     demo.show();
@@ -1111,6 +1112,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
     //cout<<"symbol"<<symbol << "\n";
     read_data(symbol);
+        
 
     // The first moving average period selected by the user.
     m_avgPeriod1 = m_MovAvg1->text().toInt();
@@ -1381,6 +1383,39 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
 void FinanceDemo :: read_data(char *symbol)
 {
+   try {
+        Connection conn(false);
+        conn.connect("technical_analysis", "localhost", "root", "s8187u610");        
+        Query query = conn.query();
+
+        /* Let's get a count of something */
+        query << "SELECT COUNT(*) AS row_count FROM stocks";
+        StoreQueryResult bres = query.store();
+        cout << "Total rows: " << bres[0]["row_count"] << "\n";
+
+        char *s = m_TickerSymbol->text().toLocal8Bit().data();
+
+        cout << "Symbol: " << s << "\n"; 
+        /* Now SELECT */
+        query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
+        StoreQueryResult ares = query.store();
+        cout << ares[0]["id"] << "\n";
+        for (size_t i = 0; i < ares.num_rows(); i++)
+        cout << "Name: " << ares[i]["id"] << "\n";
+
+    } catch (BadQuery er) { // handle any connection or
+        // query errors that may come up
+        cerr << "Error: " << er.what() << endl;        
+    } catch (const BadConversion& er) {
+        // Handle bad conversions
+        cerr << "Conversion error: " << er.what() << endl <<
+                "\tretrieved data size: " << er.retrieved <<
+                ", actual size: " << er.actual_size << endl;        
+    } catch (const Exception& er) {
+        // Catch-all for any other MySQL++ exceptions
+        cerr << "Error: " << er.what() << endl;        
+    }; 
+
     ifstream file (symbol);
     string value;
     struct tm tm1;
