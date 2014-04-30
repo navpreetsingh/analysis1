@@ -16,6 +16,7 @@
 #include <QButtonGroup>
 #include <QMouseEvent>
 #include <mysql++.h>
+#include <typeinfo>
 #include "chartdir.h"
 #include "FinanceChart.h"
 #include "financedemo.h"
@@ -1383,6 +1384,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
 void FinanceDemo :: read_data(char *symbol)
 {
+   struct tm tm1;
    try {
         Connection conn(false);
         conn.connect("technical_analysis", "localhost", "root", "s8187u610");        
@@ -1391,17 +1393,36 @@ void FinanceDemo :: read_data(char *symbol)
         /* Let's get a count of something */
         query << "SELECT COUNT(*) AS row_count FROM stocks";
         StoreQueryResult bres = query.store();
-        cout << "Total rows: " << bres[0]["row_count"] << "\n";
+        //cout << "Total rows: " << bres[0]["row_count"] << "\n";
 
         char *s = m_TickerSymbol->text().toLocal8Bit().data();
 
         cout << "Symbol: " << s << "\n"; 
         /* Now SELECT */
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
+        StoreQueryResult cres = query.store();
+        cout << "GGGGG" << cres[0]["id"] << "\n";
+        int stock_id = cres[0]["id"];
+        query << "SELECT * FROM stocks_details where stock_id = " << quote_only << stock_id;
         StoreQueryResult ares = query.store();
-        cout << ares[0]["id"] << "\n";
         for (size_t i = 0; i < ares.num_rows(); i++)
-        cout << "Name: " << ares[i]["id"] << "\n";
+        {
+            sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
+            date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
+            cout << "Date-type: " << typeid(ares[i]["date"]).name() << "\n";
+            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+            cout << "Date: " << date[i] << "  ";
+            open[i] = ares[i]["open"];
+            cout << "Open: " << ares[i]["open"] << "  ";
+            high[i] = ares[i]["high"];
+            cout << "High: " << ares[i]["high"] << "  ";
+            low[i] = ares[i]["low"];
+            cout << "Low: " << ares[i]["low"] << "  ";
+            close[i] = ares[i]["close"];
+            cout << "Close: " << ares[i]["close"] << "  ";
+            volume[i] = ares[i]["volume"];
+            cout << "Volume: " << ares[i]["volume"] << "\n";
+        }
 
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
@@ -1416,7 +1437,7 @@ void FinanceDemo :: read_data(char *symbol)
         cerr << "Error: " << er.what() << endl;        
     }; 
 
-    ifstream file (symbol);
+    /*ifstream file (symbol);
     string value;
     struct tm tm1;
     
@@ -1495,5 +1516,5 @@ void FinanceDemo :: read_data(char *symbol)
         volume[i] = volume[data_len - i];
         volume[data_len - i] = d_temp;      
     }   
-    //cout<<"data len" << data_len << "\n";   
+    //cout<<"data len" << data_len << "\n";   */
 }

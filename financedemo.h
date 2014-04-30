@@ -1,28 +1,30 @@
 #ifndef FINANCEDEMO_H
 #define FINANCEDEMO_H
 
-#include<QDialog>
-#include<QLineEdit>
-#include<QComboBox>
-#include<QCheckBox>
-#include<iostream>
+#include <QDialog>
+#include <QLineEdit>
+#include <QComboBox>
+#include <QCheckBox>
+#include <iostream>
 #include <QTimer>
-#include<fstream>
-#include<math.h>
-#include<stdlib.h>
-#include<stdio.h>                                                              
-#include<time.h>  
-#include<string.h>
-#include<QApplication>
+#include <fstream>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>                                                              
+#include <time.h>  
+#include <string.h>
+#include <QApplication>
 #include <QDateEdit>
 #include <QScrollBar>
 #include <QDateTime>
-#include<vector>
-#include<sstream>
-#include<algorithm>
-#include<QHBoxLayout>
-#include<QObjectList>
-#include<QDateTime>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+#include <QHBoxLayout>
+#include <QObjectList>
+#include <QDateTime>
+#include <mysql++.h>
+#include <typeinfo>
 
 #include"qchartviewer.h"
 #include"chartdir.h" 
