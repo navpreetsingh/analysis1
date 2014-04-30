@@ -1400,10 +1400,11 @@ void FinanceDemo :: read_data(char *symbol)
         cout << "Symbol: " << s << "\n"; 
         /* Now SELECT */
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
+
         StoreQueryResult cres = query.store();
         cout << "GGGGG" << cres[0]["id"] << "\n";
         int stock_id = cres[0]["id"];
-        query << "SELECT * FROM stocks_details where stock_id = " << quote_only << stock_id;
+        query << "SELECT * FROM stocks_details where stock_id = " << stock_id << " ORDER BY date DESC";
         StoreQueryResult ares = query.store();
         for (size_t i = 0; i < ares.num_rows(); i++)
         {
@@ -1414,6 +1415,7 @@ void FinanceDemo :: read_data(char *symbol)
             cout << "Date: " << date[i] << "  ";
             open[i] = ares[i]["open"];
             cout << "Open: " << ares[i]["open"] << "  ";
+            cout << "Open-type: " << typeid(ares[i]["open"]).name() << "\n";
             high[i] = ares[i]["high"];
             cout << "High: " << ares[i]["high"] << "  ";
             low[i] = ares[i]["low"];
