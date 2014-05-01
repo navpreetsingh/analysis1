@@ -1096,7 +1096,12 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
                 startDate = startDate.addDays(-1);
             }
         }
-    }*/
+    }*/   
+    
+    char symbol[150];
+    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    //cout<<"symbol"<<symbol << "\n";
+    read_data(symbol);
 
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
@@ -1106,14 +1111,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     // Get the array indexes that corresponds to the visible start and end dates
     int startIndex = (int)floor(Chart::bSearch(DoubleArray(date, data_len), viewPortStartDate));
     int endIndex = (int)ceil(Chart::bSearch(DoubleArray(date, data_len), viewPortEndDate));
-    int noOfPoints = endIndex - startIndex + 1;
-    
-    
-    char symbol[150];
-    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
-    //cout<<"symbol"<<symbol << "\n";
-    read_data(symbol);
-        
+    int noOfPoints = endIndex - startIndex + 1;        
 
     // The first moving average period selected by the user.
     m_avgPeriod1 = m_MovAvg1->text().toInt();
@@ -1387,7 +1385,7 @@ void FinanceDemo :: read_data(char *symbol)
    struct tm tm1;
    try {
         Connection conn(false);
-        conn.connect("technical_analysis", "localhost", "root", "s8187u610");        
+        conn.connect("technical_analysis", "localhost", "root", "waheguru13");        
         Query query = conn.query();
 
         /* Let's get a count of something */
@@ -1402,29 +1400,39 @@ void FinanceDemo :: read_data(char *symbol)
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
 
         StoreQueryResult cres = query.store();
-        cout << "GGGGG" << cres[0]["id"] << "\n";
+        //cout << "GGGGG" << cres[0]["id"] << "\n";
         int stock_id = cres[0]["id"];
         query << "SELECT * FROM stocks_details where stock_id = " << stock_id << " ORDER BY date DESC";
         StoreQueryResult ares = query.store();
+        data_len = ares.num_rows();
         for (size_t i = 0; i < ares.num_rows(); i++)
         {
             sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
             date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
-            cout << "Date-type: " << typeid(ares[i]["date"]).name() << "\n";
-            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
-            cout << "Date: " << date[i] << "  ";
             open[i] = ares[i]["open"];
-            cout << "Open: " << ares[i]["open"] << "  ";
-            cout << "Open-type: " << typeid(ares[i]["open"]).name() << "\n";
             high[i] = ares[i]["high"];
-            cout << "High: " << ares[i]["high"] << "  ";
             low[i] = ares[i]["low"];
-            cout << "Low: " << ares[i]["low"] << "  ";
             close[i] = ares[i]["close"];
-            cout << "Close: " << ares[i]["close"] << "  ";
             volume[i] = ares[i]["volume"];
-            cout << "Volume: " << ares[i]["volume"] << "\n";
+            
+            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+            cout << "Date: " << date[i] << "  "            
+                 << "Open: " << open[i] << "  " 
+                 << "High: " << high[i] << "  "
+                 << "Low: " << low[i] << "  "
+                 << "Close: " << close[i] << "  "
+                 << "Volume: " << volume[i] << "\n";
+            
+            std::cout << "date is of type: " << typeid(date[i]).name() << " "
+                      << "open is of type: " << typeid(open[i]).name() << " "
+                      << "high is of type: " << typeid(high[i]).name() << " "
+                      << "low is of type: " << typeid(low[i]).name() << " "
+                      << "close is of type: " << typeid(close[i]).name() << " "
+                      << "volume is of type: " << typeid(volume[i]).name() << " "
+                    <<std::endl;
+                        
         }
+        //cout << "No. of rows: " << ares.num_rows() << "\n";
 
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
@@ -1438,7 +1446,7 @@ void FinanceDemo :: read_data(char *symbol)
         // Catch-all for any other MySQL++ exceptions
         cerr << "Error: " << er.what() << endl;        
     }; 
-
+    //cout << "great" << "\n";
     /*ifstream file (symbol);
     string value;
     struct tm tm1;
