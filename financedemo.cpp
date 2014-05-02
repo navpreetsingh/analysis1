@@ -1103,6 +1103,8 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     //cout<<"symbol"<<symbol << "\n";
     read_data(symbol);
 
+    cout << "\n" << "Date: " << date[0] << "\n";
+
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
     double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() +
@@ -1402,11 +1404,12 @@ void FinanceDemo :: read_data(char *symbol)
         StoreQueryResult cres = query.store();
         //cout << "GGGGG" << cres[0]["id"] << "\n";
         int stock_id = cres[0]["id"];
-        query << "SELECT * FROM stocks_details where stock_id = " << stock_id << " ORDER BY date DESC";
+        query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
         StoreQueryResult ares = query.store();
-        data_len = ares.num_rows();
+        data_len = ares.num_rows() - 1;
         for (size_t i = 0; i < ares.num_rows(); i++)
         {
+            
             sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
             date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
             open[i] = ares[i]["open"];
@@ -1423,12 +1426,12 @@ void FinanceDemo :: read_data(char *symbol)
                  << "Close: " << close[i] << "  "
                  << "Volume: " << volume[i] << "\n";
             
-            std::cout << "date is of type: " << typeid(date[i]).name() << " "
-                      << "open is of type: " << typeid(open[i]).name() << " "
-                      << "high is of type: " << typeid(high[i]).name() << " "
-                      << "low is of type: " << typeid(low[i]).name() << " "
-                      << "close is of type: " << typeid(close[i]).name() << " "
-                      << "volume is of type: " << typeid(volume[i]).name() << " "
+            std::cout << "date is of type: " << typeid(date[i]).name() << "   "
+                      << "open is of type: " << typeid(ares[i]["open"]).name() << "   "
+                      << "high is of type: " << typeid(high[i]).name() << "   "
+                      << "low is of type: " << typeid(low[i]).name() << "   "
+                      << "close is of type: " << typeid(close[i]).name() << "   "
+                      << "volume is of type: " << typeid(volume[i]).name() << "   "
                     <<std::endl;
                         
         }
