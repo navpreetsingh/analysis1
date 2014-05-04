@@ -1384,8 +1384,8 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
 void FinanceDemo :: read_data(char *symbol)
 {
-   struct tm tm1;
-   try {
+    struct tm tm1;
+    try {
         Connection conn(false);
         conn.connect("technical_analysis", "localhost", "root", "s8187u610");        
         Query query = conn.query();
@@ -1413,16 +1413,16 @@ void FinanceDemo :: read_data(char *symbol)
             cout << "Date-type: " << typeid(ares[i]["date"]).name() << "\n";
             cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
             cout << "Date: " << date[i] << "  ";
-            open[i] = ares[i]["open"];
+            open[i] = atof(ares[i]["open"]);
             cout << "Open: " << ares[i]["open"] << "  ";
-            cout << "Open-type: " << typeid(ares[i]["open"]).name() << "\n";
-            high[i] = ares[i]["high"];
+            cout << "Open-type: " << typeid(open[i]).name() << "\n";
+            high[i] = atof(ares[i]["high"]);
             cout << "High: " << ares[i]["high"] << "  ";
-            low[i] = ares[i]["low"];
+            low[i] = atof(ares[i]["low"]);
             cout << "Low: " << ares[i]["low"] << "  ";
-            close[i] = ares[i]["close"];
+            close[i] = atof(ares[i]["close"]);
             cout << "Close: " << ares[i]["close"] << "  ";
-            volume[i] = ares[i]["volume"];
+            volume[i] = atoi(ares[i]["volume"]);
             cout << "Volume: " << ares[i]["volume"] << "\n";
         }
 
@@ -1438,7 +1438,7 @@ void FinanceDemo :: read_data(char *symbol)
         // Catch-all for any other MySQL++ exceptions
         cerr << "Error: " << er.what() << endl;        
     }; 
-
+}
     /*ifstream file (symbol);
     string value;
     struct tm tm1;
@@ -1519,4 +1519,4 @@ void FinanceDemo :: read_data(char *symbol)
         volume[data_len - i] = d_temp;      
     }   
     //cout<<"data len" << data_len << "\n";   */
-}
+
