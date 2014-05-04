@@ -1096,7 +1096,14 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
                 startDate = startDate.addDays(-1);
             }
         }
-    }*/
+    }*/   
+    
+    char symbol[150];
+    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    //cout<<"symbol"<<symbol << "\n";
+    read_data(symbol);
+
+    cout << "\n" << "Date: " << date[0] << "\n";
 
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
@@ -1106,14 +1113,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     // Get the array indexes that corresponds to the visible start and end dates
     int startIndex = (int)floor(Chart::bSearch(DoubleArray(date, data_len), viewPortStartDate));
     int endIndex = (int)ceil(Chart::bSearch(DoubleArray(date, data_len), viewPortEndDate));
-    int noOfPoints = endIndex - startIndex + 1;
-    
-    
-    char symbol[150];
-    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
-    //cout<<"symbol"<<symbol << "\n";
-    read_data(symbol);
-        
+    int noOfPoints = endIndex - startIndex + 1;        
 
     // The first moving average period selected by the user.
     m_avgPeriod1 = m_MovAvg1->text().toInt();
@@ -1387,7 +1387,7 @@ void FinanceDemo :: read_data(char *symbol)
     struct tm tm1;
     try {
         Connection conn(false);
-        conn.connect("technical_analysis", "localhost", "root", "s8187u610");        
+        conn.connect("technical_analysis", "localhost", "root", "waheguru13");        
         Query query = conn.query();
 
         /* Let's get a count of something */
@@ -1402,14 +1402,17 @@ void FinanceDemo :: read_data(char *symbol)
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
 
         StoreQueryResult cres = query.store();
-        cout << "GGGGG" << cres[0]["id"] << "\n";
+        //cout << "GGGGG" << cres[0]["id"] << "\n";
         int stock_id = cres[0]["id"];
-        query << "SELECT * FROM stocks_details where stock_id = " << stock_id << " ORDER BY date DESC";
+        query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
         StoreQueryResult ares = query.store();
+        data_len = ares.num_rows() - 1;
         for (size_t i = 0; i < ares.num_rows(); i++)
         {
+            
             sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
             date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
+
             cout << "Date-type: " << typeid(ares[i]["date"]).name() << "\n";
             cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
             cout << "Date: " << date[i] << "  ";
@@ -1424,7 +1427,31 @@ void FinanceDemo :: read_data(char *symbol)
             cout << "Close: " << ares[i]["close"] << "  ";
             volume[i] = atoi(ares[i]["volume"]);
             cout << "Volume: " << ares[i]["volume"] << "\n";
+
+            open[i] = ares[i]["open"];
+            high[i] = ares[i]["high"];
+            low[i] = ares[i]["low"];
+            close[i] = ares[i]["close"];
+            volume[i] = ares[i]["volume"];
+            
+            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+            cout << "Date: " << date[i] << "  "            
+                 << "Open: " << open[i] << "  " 
+                 << "High: " << high[i] << "  "
+                 << "Low: " << low[i] << "  "
+                 << "Close: " << close[i] << "  "
+                 << "Volume: " << volume[i] << "\n";
+            
+            std::cout << "date is of type: " << typeid(date[i]).name() << "   "
+                      << "open is of type: " << typeid(ares[i]["open"]).name() << "   "
+                      << "high is of type: " << typeid(high[i]).name() << "   "
+                      << "low is of type: " << typeid(low[i]).name() << "   "
+                      << "close is of type: " << typeid(close[i]).name() << "   "
+                      << "volume is of type: " << typeid(volume[i]).name() << "   "
+                    <<std::endl;
+                        
         }
+        //cout << "No. of rows: " << ares.num_rows() << "\n";
 
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
@@ -1438,85 +1465,7 @@ void FinanceDemo :: read_data(char *symbol)
         // Catch-all for any other MySQL++ exceptions
         cerr << "Error: " << er.what() << endl;        
     }; 
+
 }
-    /*ifstream file (symbol);
-    string value;
-    struct tm tm1;
-    
-    //ELIMINATE FIRST ROW
-    int i;
-    for(i = 0; i < 6; i++)
-        getline(file, value, ',');
-    getline(file, value);                            
-    
-    //GETTING DATA
-    i = 0;
-    while ( getline(file, value, ',') )
-    {
-        
-        sscanf(value.c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
-        //cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
-        date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
-        
-        getline(file, value, ',');
-        open[i] = atof(value.c_str());
-        //cout << "open: " << open[i] << '\n';
-        
-        getline(file, value, ',');
-        high[i] = atof(value.c_str());
-        //cout << "high: " << high[i] << '\n';
-        
-        getline(file, value, ',');
-        low[i] = atof(value.c_str());
-        //cout << "low: " << low[i] << '\n';
-        
-        getline(file, value, ',');
-        close[i] = atof(value.c_str());
-        //cout << "close: " << close[i] << '\n';
-        
-        getline(file, value, ',');
-        volume[i] = atoi(value.c_str());
-        //cout << "vol: " << volume[i] << '\n';
-        
-        getline(file, value);
-        adjclose[i] = atof(value.c_str());
-        //cout << "adj-close: " << adjclose[i] << '\n';
-        
-        i++;    
-    }   
-    data_len = i - 1 ;
-    
-    for(i=0; i < data_len/2; i++)
-    {
-        double d_temp;      
-        
-        d_temp = date[i];
-        date[i] = date[data_len - i];
-        date[data_len - i] = d_temp;
-        
-        d_temp = open[i];
-        open[i] = open[data_len - i];
-        open[data_len - i] = d_temp;
-        
-        d_temp = high[i];
-        high[i] = high[data_len - i];
-        high[data_len - i] = d_temp;
-        
-        d_temp = low[i];
-        low[i] = low[data_len - i];
-        low[data_len - i] = d_temp;
-        
-        d_temp = close[i];
-        close[i] = close[data_len - i];
-        close[data_len - i] = d_temp;
-        
-        d_temp = adjclose[i];
-        adjclose[i] = adjclose[data_len - i];
-        adjclose[data_len - i] = d_temp;
-        
-        d_temp = volume[i];
-        volume[i] = volume[data_len - i];
-        volume[data_len - i] = d_temp;      
-    }   
-    //cout<<"data len" << data_len << "\n";   */
+
 
