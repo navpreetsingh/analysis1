@@ -290,7 +290,8 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
     m_HScrollBar->setGeometry(165, 728, 1135, 17);
-
+    connect(m_HScrollBar, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
+    
     // Pointer push button
     QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");
     
