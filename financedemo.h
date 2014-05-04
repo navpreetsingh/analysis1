@@ -104,7 +104,7 @@ private:
     void drawChart(QChartViewer *viewer);            // Draw chart
 	void financedemo(MultiChart *m, int mouseX);    // Draw Track Cursor
 	void initChartViewer(QChartViewer *viewer);     // Initialize the QChartViewer
-	void read_data(char* );
+	void read_data();
 	void updateControls(QChartViewer *viewer);      // Update other controls
 	void updateImageMap(QChartViewer *viewer);      // Update the image map	
 

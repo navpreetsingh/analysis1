@@ -290,7 +290,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
     m_HScrollBar->setGeometry(165, 728, 1135, 17);
-    
+
     // Pointer push button
     QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");
     
@@ -328,9 +328,8 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Initialize the chart
     //
     
-    // Load the data
-    char symbol[100] = "Yahoo/AAPL.csv" ;
-    read_data(symbol);   
+    // Load the data    
+    read_data();   
 
     // Initialize the QChartViewer
     initChartViewer(m_ChartViewer);
@@ -1097,14 +1096,9 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
             }
         }
     }*/   
-    
-    char symbol[150];
-    sprintf(symbol,"Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
-    //cout<<"symbol"<<symbol << "\n";
-    read_data(symbol);
-
-    cout << "\n" << "Date: " << date[0] << "\n";
-
+        
+    read_data();
+   
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
     double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() +
@@ -1382,7 +1376,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     viewer->setImageMap(m.getHTMLImageMap("", "", buffer));*/
 }
 
-void FinanceDemo :: read_data(char *symbol)
+void FinanceDemo :: read_data()
 {
     struct tm tm1;
     try {
@@ -1396,63 +1390,24 @@ void FinanceDemo :: read_data(char *symbol)
         //cout << "Total rows: " << bres[0]["row_count"] << "\n";
 
         char *s = m_TickerSymbol->text().toLocal8Bit().data();
-
-        cout << "Symbol: " << s << "\n"; 
+        
         /* Now SELECT */
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
-
-        StoreQueryResult cres = query.store();
-        //cout << "GGGGG" << cres[0]["id"] << "\n";
+        StoreQueryResult cres = query.store();        
         int stock_id = cres[0]["id"];
         query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
         StoreQueryResult ares = query.store();
         data_len = ares.num_rows() - 1;
         for (size_t i = 0; i < ares.num_rows(); i++)
-        {
-            
+        {            
             sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
             date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
-
-            cout << "Date-type: " << typeid(ares[i]["date"]).name() << "\n";
-            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
-            cout << "Date: " << date[i] << "  ";
-            open[i] = atof(ares[i]["open"]);
-            cout << "Open: " << ares[i]["open"] << "  ";
-            cout << "Open-type: " << typeid(open[i]).name() << "\n";
-            high[i] = atof(ares[i]["high"]);
-            cout << "High: " << ares[i]["high"] << "  ";
-            low[i] = atof(ares[i]["low"]);
-            cout << "Low: " << ares[i]["low"] << "  ";
-            close[i] = atof(ares[i]["close"]);
-            cout << "Close: " << ares[i]["close"] << "  ";
-            volume[i] = atoi(ares[i]["volume"]);
-            cout << "Volume: " << ares[i]["volume"] << "\n";
-
             open[i] = ares[i]["open"];
             high[i] = ares[i]["high"];
             low[i] = ares[i]["low"];
             close[i] = ares[i]["close"];
-            volume[i] = ares[i]["volume"];
-            
-            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
-            cout << "Date: " << date[i] << "  "            
-                 << "Open: " << open[i] << "  " 
-                 << "High: " << high[i] << "  "
-                 << "Low: " << low[i] << "  "
-                 << "Close: " << close[i] << "  "
-                 << "Volume: " << volume[i] << "\n";
-            
-            std::cout << "date is of type: " << typeid(date[i]).name() << "   "
-                      << "open is of type: " << typeid(ares[i]["open"]).name() << "   "
-                      << "high is of type: " << typeid(high[i]).name() << "   "
-                      << "low is of type: " << typeid(low[i]).name() << "   "
-                      << "close is of type: " << typeid(close[i]).name() << "   "
-                      << "volume is of type: " << typeid(volume[i]).name() << "   "
-                    <<std::endl;
-                        
-        }
-        //cout << "No. of rows: " << ares.num_rows() << "\n";
-
+            volume[i] = ares[i]["volume"];                        
+        }        
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
         cerr << "Error: " << er.what() << endl;        
