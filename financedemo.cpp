@@ -26,6 +26,7 @@ using namespace mysqlpp;
 
 int main(int argc, char *argv[])
 {    
+    cout << "main \n";
     QApplication app(argc, argv);
     FinanceDemo demo;
     demo.show();
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
 // Convert from QDateTime to chartTime
 static double QDateTimeToChartTime(QDateTime q)
 {
+    cout << "QDateTimeToChartTime \n";
     QDate d = q.date();
     QTime t = q.time();
     return Chart::chartTime(d.year(), d.month(), d.day(), t.hour(), t.minute(),
@@ -62,6 +64,7 @@ static double QDateTimeToChartTime(QDateTime q)
 FinanceDemo::FinanceDemo(QWidget *parent) :
         QDialog(parent, Qt::Window)
 {
+    cout << "FinanceDemo(Qwidget *parent) \n";    
     //
     // Initialize member variables
     //
@@ -321,6 +324,8 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
     connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
     
+    // Load the data    
+    read_data();   
 
     // Update the chart
     drawChart(m_ChartViewer);
@@ -328,10 +333,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     //
     // Initialize the chart
     //
-    
-    // Load the data    
-    read_data();   
-
+        
     // Initialize the QChartViewer
     initChartViewer(m_ChartViewer);
 
@@ -347,6 +349,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
 //
 FinanceDemo::~FinanceDemo()
 {
+    cout << "~FinanceDemo \n";
     delete m_ChartViewer->getChart();
 }
 
@@ -355,6 +358,7 @@ FinanceDemo::~FinanceDemo()
 //
 void FinanceDemo::initChartViewer(QChartViewer *viewer)
 {
+    cout << "InitChartViewer \n";
     // Set the full x range to be the duration of the data
     viewer->setFullRange("x", date[0], date[data_len]);
 
@@ -368,22 +372,29 @@ void FinanceDemo::initChartViewer(QChartViewer *viewer)
 
 void FinanceDemo::onCheckBoxChanged()
 {
+    cout << "onCheckBoxChanged \n";    
     drawChart(m_ChartViewer);
 }
 
 void FinanceDemo::onComboBoxChanged(int)
 {
+    cout << "onComboBoxChanged \n";
     drawChart(m_ChartViewer);
 }
 
 void FinanceDemo::onLineEditChanged()
 {
+    cout << "onLineEditChanged \n";
+
     int new_avgPeriod1 = m_MovAvg1->text().toInt();
     int new_avgPeriod2 = m_MovAvg2->text().toInt();
 
     QString tickerKey = m_TickerSymbol->text();
     
     QString compareKey = m_CompareWith->text();
+
+    if (m_tickerKey != tickerKey) 
+        read_data();
 
     if ((new_avgPeriod1 != m_avgPeriod1) || (new_avgPeriod2 != m_avgPeriod2) ||
         (m_tickerKey != tickerKey) || (m_compareKey != compareKey))
@@ -395,7 +406,9 @@ void FinanceDemo::onLineEditChanged()
 //
 void FinanceDemo::onHScrollBarChanged(int value)
 {
-     if (!m_ChartViewer->isInViewPortChangedEvent())
+    cout << "onHScrollBarChanged \n";
+    delete m_ChartViewer->getChart();
+    if (!m_ChartViewer->isInViewPortChangedEvent())
     {
         // Set the view port based on the scroll bar
         int scrollBarLen = m_HScrollBar->maximum() + m_HScrollBar->pageStep();
@@ -412,6 +425,7 @@ void FinanceDemo::onHScrollBarChanged(int value)
 //
 void FinanceDemo::updateControls(QChartViewer *viewer)
 {
+    cout << "updateControls \n";
     // The logical length of the scrollbar. It can be any large value. The actual value does
     // not matter.
     const int scrollBarLen = 1000000000;
@@ -430,6 +444,7 @@ void FinanceDemo::updateControls(QChartViewer *viewer)
 //
 void FinanceDemo::onMouseMovePlotArea(QMouseEvent *)
 {
+    cout << "onMouseMovePlotArea \n";
     financedemo((MultiChart *)m_ChartViewer->getChart(), m_ChartViewer->getPlotAreaMouseX());
     m_ChartViewer->updateDisplay();
 }
@@ -439,6 +454,7 @@ void FinanceDemo::onMouseMovePlotArea(QMouseEvent *)
 //
 void FinanceDemo::onMouseUsageChanged(int mouseUsage)
 {
+    cout << "onMouseUsageChanged \n";
     m_ChartViewer->setMouseUsage(mouseUsage);
 }
 
@@ -450,6 +466,7 @@ void FinanceDemo::onMouseUsageChanged(int mouseUsage)
 
 void FinanceDemo::onViewPortChanged()
 {
+    cout << "onViewPortChanged \n";
 	updateControls(m_ChartViewer);
     
     if (m_ChartViewer->needUpdateChart())
@@ -463,6 +480,7 @@ void FinanceDemo::onViewPortChanged()
 
 void FinanceDemo::updateImageMap(QChartViewer *viewer)
 {
+    cout << "updateImageMap \n";
     // Include tool tip for the chart
     if (0 == viewer->getImageMapHandler())
     {
@@ -477,6 +495,7 @@ void FinanceDemo::updateImageMap(QChartViewer *viewer)
 //
 void FinanceDemo::onMouseWheelChart(QWheelEvent *event)
 {
+    cout << "onMouseWheelChart \n";
     // Process the mouse wheel only if the mouse is over the plot area
     if (!m_ChartViewer->isMouseOnPlotArea())
     {
@@ -520,6 +539,7 @@ void FinanceDemo::onMouseWheelChart(QWheelEvent *event)
 //
 void FinanceDemo::financedemo(MultiChart *m, int mouseX)
 {
+    cout << "financedemo: \n";
     //cout << "mouseX" << mouseX << "\n";
     // Clear the current dynamic layer and get the DrawArea object to draw on it.
     DrawArea *d = m->initDynamicLayer();
@@ -950,6 +970,7 @@ void FinanceDemo::aggregateData(ArrayMath &aggregator)
 /// <param name="color">The color of the line.</param>
 static LineLayer* addMovingAvg(FinanceChart *m, QString avgType, int avgPeriod, int color)
 {
+    cout << "addMovingAvg \n";
     if (avgPeriod > 1)
     {
         if (avgType == "SMA")
@@ -976,6 +997,7 @@ static LineLayer* addMovingAvg(FinanceChart *m, QString avgType, int avgPeriod, 
 /// <param name="height">Height of the chart in pixels</param>
 static XYChart* addIndicator(FinanceChart *m, QString indicator, int height)
 {
+    cout << "addIndicator \n";
     if (indicator == "RSI")
         return m->addRSI(height, 14, 0x800080, 20, 0xff6666, 0x6666ff);
     else if (indicator == "StochRSI")
@@ -1055,9 +1077,10 @@ static XYChart* addIndicator(FinanceChart *m, QString indicator, int height)
 /// <param name="msg">The error message</param>
 static void errMsg(QChartViewer* viewer, const char *msg)
 {
-     MultiChart m(400, 200);
-     m.addTitle(Chart::Center, msg, "Arial", 10)->setMaxWidth(m.getWidth());
-     viewer->setChart(&m);
+    cout << "errMsg \n";
+    MultiChart m(400, 200);
+    m.addTitle(Chart::Center, msg, "Arial", 10)->setMaxWidth(m.getWidth());
+    viewer->setChart(&m);
 }
 
 /// <summary>
@@ -1066,6 +1089,7 @@ static void errMsg(QChartViewer* viewer, const char *msg)
 /// <param name="viewer">The ChartViewer object to display the chart.</param>
 void FinanceDemo::drawChart(QChartViewer *viewer)
 {
+    cout << "drawChart \n";
     /*// In this demo, we just assume we plot up to the latest time. So endDate is now.
     QDateTime endDate = QDateTime::currentDateTime();
 
@@ -1098,7 +1122,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
         }
     }*/   
         
-    read_data();
+    //read_data();
    
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
@@ -1379,6 +1403,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
 void FinanceDemo :: read_data()
 {
+    cout << "read_data \n";
     struct tm tm1;
     try {
         Connection conn(false);
