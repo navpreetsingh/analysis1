@@ -25,9 +25,10 @@
 #include <QDateTime>
 #include <mysql++.h>
 #include <typeinfo>
+#include <exception>
 
-#include"qchartviewer.h"
-#include"chartdir.h" 
+#include "qchartviewer.h"
+#include "chartdir.h" 
 
 class FinanceDemo : public QDialog
 {
@@ -39,13 +40,12 @@ public:
 private:
     // TimeStamps, volume, high, low, open and close data
     QString m_tickerKey;
-    double date[5000];
-    double open[5000];
-    double high[5000];
-    double low[5000];
-    double close[5000];
-    double volume[5000];
-    double adjclose[5000];
+    double *date;
+    double *open;
+    double *high;
+    double *low;
+    double *close;
+    double *volume;    
     int data_len;       
 
     // An extra data series to compare with the close data
@@ -105,6 +105,7 @@ private:
 	void financedemo(MultiChart *m, int mouseX);    // Draw Track Cursor
 	void initChartViewer(QChartViewer *viewer);     // Initialize the QChartViewer
 	void read_data();
+    void read_data_compare();
 	void updateControls(QChartViewer *viewer);      // Update other controls
 	void updateImageMap(QChartViewer *viewer);      // Update the image map	
 

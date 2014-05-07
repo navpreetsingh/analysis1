@@ -17,6 +17,7 @@
 #include <QMouseEvent>
 #include <mysql++.h>
 #include <typeinfo>
+#include <exception>
 #include "chartdir.h"
 #include "FinanceChart.h"
 #include "financedemo.h"
@@ -40,14 +41,14 @@ int main(int argc, char *argv[])
 //
 
 // Convert from QDateTime to chartTime
-static double QDateTimeToChartTime(QDateTime q)
+/*static double QDateTimeToChartTime(QDateTime q)
 {
     cout << "QDateTimeToChartTime \n";
     QDate d = q.date();
     QTime t = q.time();
     return Chart::chartTime(d.year(), d.month(), d.day(), t.hour(), t.minute(),
         t.second()) + t.msec() / 1000.0;
-}
+}*/
 
 // Convert from chartTime to QDateTime
 /*static QDateTime ChartTimeToQDateTime(double t)
@@ -396,9 +397,17 @@ void FinanceDemo::onLineEditChanged()
     if (m_tickerKey != tickerKey) 
         read_data();
 
+    if (m_compareKey != compareKey)
+        read_data_compare();
+
     if ((new_avgPeriod1 != m_avgPeriod1) || (new_avgPeriod2 != m_avgPeriod2) ||
         (m_tickerKey != tickerKey) || (m_compareKey != compareKey))
-        drawChart(m_ChartViewer);
+    {
+         m_tickerKey = m_TickerSymbol->text();
+         m_compareKey =  m_CompareWith ->text();
+         drawChart(m_ChartViewer);
+    }
+        
 }
 
 //
@@ -1075,13 +1084,13 @@ static XYChart* addIndicator(FinanceChart *m, QString indicator, int height)
 /// </summary>
 /// <param name="viewer">The WinChartViewer to display the error message.</param>
 /// <param name="msg">The error message</param>
-static void errMsg(QChartViewer* viewer, const char *msg)
+/*static void errMsg(QChartViewer* viewer, const char *msg)
 {
     cout << "errMsg \n";
     MultiChart m(400, 200);
     m.addTitle(Chart::Center, msg, "Arial", 10)->setMaxWidth(m.getWidth());
     viewer->setChart(&m);
-}
+}*/
 
 /// <summary>
 /// Draw the chart according to user selection and display it in the ChartViewer.
@@ -1089,7 +1098,7 @@ static void errMsg(QChartViewer* viewer, const char *msg)
 /// <param name="viewer">The ChartViewer object to display the chart.</param>
 void FinanceDemo::drawChart(QChartViewer *viewer)
 {
-    cout << "drawChart \n";
+   cout << "drawChart \n";
     /*// In this demo, we just assume we plot up to the latest time. So endDate is now.
     QDateTime endDate = QDateTime::currentDateTime();
 
@@ -1131,6 +1140,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
     // Get the array indexes that corresponds to the visible start and end dates
     int startIndex = (int)floor(Chart::bSearch(DoubleArray(date, data_len), viewPortStartDate));
+    cout << "Start Index: " << startIndex << "\n";
     int endIndex = (int)ceil(Chart::bSearch(DoubleArray(date, data_len), viewPortEndDate));
     int noOfPoints = endIndex - startIndex + 1;        
 
@@ -1259,7 +1269,12 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     m->setLegendStyle("normal", 8, Chart::Transparent, Chart::Transparent);
     
     // Set the data into the finance chart object
-    m->setData(DoubleArray(date + startIndex, noOfPoints), DoubleArray(high + startIndex, noOfPoints), DoubleArray(low + startIndex, noOfPoints), DoubleArray(open + startIndex, noOfPoints), DoubleArray(close + startIndex, noOfPoints), DoubleArray(volume + startIndex, noOfPoints), 30);
+    m->setData(DoubleArray(date + startIndex, noOfPoints), 
+               DoubleArray(high + startIndex, noOfPoints), 
+               DoubleArray(low + startIndex, noOfPoints), 
+               DoubleArray(open + startIndex, noOfPoints), 
+               DoubleArray(close + startIndex, noOfPoints), 
+               DoubleArray(volume + startIndex, noOfPoints), 30);
 
     /*// Set the data into the chart object
     m.setData(DoubleArray(m_timeStamps, m_noOfPoints + extraTrailingPoints),
@@ -1332,12 +1347,12 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     //
     // Add comparison line if there is data for comparison
     //
-    if (m_compareData != 0) {
-        if (m_compareDataLen > extraPoints) {
-            m->addComparison(DoubleArray(m_compareData, m_compareDataLen), 0x0000ff,
+    if (m_compareDataLen > 30) {
+        cout << "for comparison \n";    
+            m->addComparison(DoubleArray(m_compareData + startIndex, noOfPoints), 0x0000ff,
                 m_compareKey.toUtf8().data());
-        }
     }
+ 
 
     //
     // Add moving average lines.
@@ -1408,22 +1423,30 @@ void FinanceDemo :: read_data()
     try {
         Connection conn(false);
         conn.connect("technical_analysis", "localhost", "root", "waheguru13");        
-        Query query = conn.query();
-
-        /* Let's get a count of something */
-        query << "SELECT COUNT(*) AS row_count FROM stocks";
-        StoreQueryResult bres = query.store();
-        //cout << "Total rows: " << bres[0]["row_count"] << "\n";
-
+        Query query = conn.query();     
+       
         char *s = m_TickerSymbol->text().toLocal8Bit().data();
         
-        /* Now SELECT */
+        /* Now SELECT */        
         query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
         StoreQueryResult cres = query.store();        
-        int stock_id = cres[0]["id"];
+        if (cres.num_rows() == 0)
+        {
+            data_len = 0;
+            return;
+        }          
+        
+        int stock_id = cres[0]["id"];        
         query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
         StoreQueryResult ares = query.store();
         data_len = ares.num_rows() - 1;
+
+        date = new double[data_len + 1];
+        open = new double[data_len + 1];
+        high = new double[data_len + 1];
+        low = new double[data_len + 1];
+        close = new double[data_len + 1];
+        volume = new double[data_len + 1];
         for (size_t i = 0; i < ares.num_rows(); i++)
         {            
             sscanf(ares[i]["date"].c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
@@ -1436,17 +1459,67 @@ void FinanceDemo :: read_data()
         }        
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
+        cout << "BAD QUERY 1" << "\n";
         cerr << "Error: " << er.what() << endl;        
     } catch (const BadConversion& er) {
         // Handle bad conversions
+        cout << "BAD QUERY 2" << "\n";
         cerr << "Conversion error: " << er.what() << endl <<
                 "\tretrieved data size: " << er.retrieved <<
                 ", actual size: " << er.actual_size << endl;        
     } catch (const Exception& er) {
         // Catch-all for any other MySQL++ exceptions
+        cout << "BAD QUERY 3" << "\n";
         cerr << "Error: " << er.what() << endl;        
-    }; 
+    } 
 
+}
+
+void FinanceDemo :: read_data_compare()
+{
+    cout << "read_data_compare \n";
+    
+    try {
+        Connection conn(false);
+        conn.connect("technical_analysis", "localhost", "root", "waheguru13");        
+        Query query = conn.query();         
+        char *s =  m_CompareWith ->text().toLocal8Bit().data();
+        
+        /* Now SELECT */        
+        query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
+        StoreQueryResult cres = query.store();        
+        if (cres.num_rows() == 0)
+        {
+           m_compareDataLen = 0;
+            return;
+        }          
+        
+        int stock_id = cres[0]["id"];        
+        query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
+        StoreQueryResult ares = query.store();
+        m_compareDataLen = ares.num_rows() - 1;
+
+        m_compareData = new double[m_compareDataLen + 1];
+
+        for (size_t i = 0; i < ares.num_rows(); i++)
+        {            
+            m_compareData[i] = ares[i]["close"];            
+        }        
+    } catch (BadQuery er) { // handle any connection or
+        // query errors that may come up
+        cout << "BAD QUERY 1" << "\n";
+        cerr << "Error: " << er.what() << endl;        
+    } catch (const BadConversion& er) {
+        // Handle bad conversions
+        cout << "BAD QUERY 2" << "\n";
+        cerr << "Conversion error: " << er.what() << endl <<
+                "\tretrieved data size: " << er.retrieved <<
+                ", actual size: " << er.actual_size << endl;        
+    } catch (const Exception& er) {
+        // Catch-all for any other MySQL++ exceptions
+        cout << "BAD QUERY 3" << "\n";
+        cerr << "Error: " << er.what() << endl;        
+    } 
 }
 
 
