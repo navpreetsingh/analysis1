@@ -25,7 +25,7 @@
 #include <QDateTime>
 #include <mysql++.h>
 #include <typeinfo>
-#include <exception>
+
 
 #include "qchartviewer.h"
 #include "chartdir.h" 

@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'financedemo.h'
 **
-** Created: Wed May 7 16:45:54 2014
+** Created: Thu May 8 19:37:28 2014
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.3)
 **
 ** WARNING! All changes made in this file will be lost!

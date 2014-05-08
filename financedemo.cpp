@@ -17,7 +17,6 @@
 #include <QMouseEvent>
 #include <mysql++.h>
 #include <typeinfo>
-#include <exception>
 #include "chartdir.h"
 #include "FinanceChart.h"
 #include "financedemo.h"
