@@ -1,0 +1,4 @@
+SELECT COALESCE(open), max(high), min(low), sum(volume) 
+FROM `stocks_details` 
+where stock_id = 1 AND 
+date between "2005-01-03" AND "2005-01-18"

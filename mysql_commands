@@ -1,0 +1,8 @@
+SELECT COALESCE(open) AS open, 
+       max(high) AS high, 
+       min(low) AS low, 
+       SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, 
+       sum(volume) AS volume
+FROM `stocks_details` 
+where stock_id = 1 AND 
+date between "2005-01-03" AND "2005-01-18"

@@ -194,21 +194,20 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Fill the contents of the combo boxes
     //
 
+    m_TimeRange->addItem("1 minute", 1);
+    m_TimeRange->addItem("2 minutes ", 1);
+    m_TimeRange->addItem("5 minutes", 1);
+    m_TimeRange->addItem("15 minutes", 1);
+    m_TimeRange->addItem("30 minutes", 1);
+    m_TimeRange->addItem("1 hour", 1);
+    m_TimeRange->addItem("2 hours", 1);
+    
     m_TimeRange->addItem("1 day", 1);
     m_TimeRange->addItem("2 days", 2);
-    m_TimeRange->addItem("5 days", 5);
-    m_TimeRange->addItem("10 days", 10);
+    m_TimeRange->addItem("1 week", 7);
+    m_TimeRange->addItem("2 weeks", 14);
     m_TimeRange->addItem("1 month", 30);
-    m_TimeRange->addItem("2 months", 60);
-    m_TimeRange->addItem("3 months", 90);
-    m_TimeRange->addItem("6 months", 180);
-    m_TimeRange->addItem("1 year", 360);
-    m_TimeRange->addItem("2 years", 720);
-    m_TimeRange->addItem("3 years", 1080);
-    m_TimeRange->addItem("4 years", 1440);
-    m_TimeRange->addItem("5 years", 1800);
-    m_TimeRange->addItem("10 years", 3600);
-    m_TimeRange->setCurrentIndex(7);
+    m_TimeRange->setCurrentIndex(1);
 
     m_ChartSize->addItem("Small", "S");
     m_ChartSize->addItem("Medium", "M");
@@ -415,9 +414,9 @@ void FinanceDemo::onLineEditChanged()
 void FinanceDemo::onHScrollBarChanged(int value)
 {
     cout << "onHScrollBarChanged \n";
-    delete m_ChartViewer->getChart();
+    
     if (!m_ChartViewer->isInViewPortChangedEvent())
-    {
+    {        
         // Set the view port based on the scroll bar
         int scrollBarLen = m_HScrollBar->maximum() + m_HScrollBar->pageStep();
         m_ChartViewer->setViewPortLeft(value / (double)scrollBarLen);
@@ -1098,6 +1097,7 @@ static XYChart* addIndicator(FinanceChart *m, QString indicator, int height)
 void FinanceDemo::drawChart(QChartViewer *viewer)
 {
    cout << "drawChart \n";
+   delete m_ChartViewer->getChart();
     /*// In this demo, we just assume we plot up to the latest time. So endDate is now.
     QDateTime endDate = QDateTime::currentDateTime();
 
