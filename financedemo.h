@@ -54,29 +54,13 @@ private:
     int m_compareDataLen;
 
     // The resolution of the data in seconds. 1 day = 86400 seconds.
-    int m_resolution;
+    int m_duration;
 
     // The moving average periods
     int m_avgPeriod1;
     int m_avgPeriod2;
 
-    /*// Routines to get data into the data arrays
-    virtual bool getData(const QString &ticker, QDateTime startDate, QDateTime endDate,
-            int durationInDays, int extraPoints);
-    virtual void get15MinData(const QString &ticker, QDateTime startDate, QDateTime endDate);
-    virtual void getDailyData(const QString &ticker, QDateTime startDate, QDateTime endDate);
-    virtual void getWeeklyData(const QString &ticker, QDateTime startDate, QDateTime endDate);
-    virtual void getMonthlyData(const QString &ticker, QDateTime startDate, QDateTime endDate);
-
-    // Utilities to aggregate data if the data source do not already have aggregated data
-    virtual void convertDailyToWeeklyData();
-    virtual void convertDailyToMonthlyData();
-    virtual void aggregateData(ArrayMath &aggregator);
-
-    // In the demo, we just use random numbers for data.
-    virtual void generateRandomData(const QString &ticker, QDateTime startDate,
-                                    QDateTime endDate, int resolution);
-    */
+   
     // The user interface
     QLineEdit *m_TickerSymbol;
     QLineEdit *m_CompareWith;
@@ -104,8 +88,8 @@ private:
     void drawChart(QChartViewer *viewer);            // Draw chart
 	void financedemo(MultiChart *m, int mouseX);    // Draw Track Cursor
 	void initChartViewer(QChartViewer *viewer);     // Initialize the QChartViewer
-	void read_data();
-    void read_data_compare();
+	void read_data(int durationOfStock);
+    void read_data_compare(int durationOfStock);
 	void updateControls(QChartViewer *viewer);      // Update other controls
 	void updateImageMap(QChartViewer *viewer);      // Update the image map	
 

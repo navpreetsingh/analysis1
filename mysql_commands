@@ -6,3 +6,68 @@ SELECT COALESCE(open) AS open,
 FROM `stocks_details` 
 where stock_id = 1 AND 
 date between "2005-01-03" AND "2005-01-18"
+
+SELECT date, open , high, low, close, volume
+FROM  `stocks_details` 
+LEFT JOIN stocks ON stocks_details.stock_id = stocks.id
+WHERE stocks.stock_name =  "AAPL"
+
+1 day
+SELECT date, open, high, low, close, volume from stocks_details 
+WHERE stock_id = (SELECT id from stocks where stock_name = "A")
+ORDER by date ASC
+
+
+2 days (NOT IMPLEMENTED CORRECTLY)
+SELECT date, 
+UNIX_TIMESTAMP(date) AS timestamp, 
+DAYNAME(date) AS day, 
+ROUND(UNIX_TIMESTAMP(date)/(24*60*48*2)) AS timekey 
+FROM `stocks_details` 
+where stock_id = 6
+
+1 week (NOT IMPLEMENTED)
+SELECT MAX(date) AS date, 
+	COALESCE(open) AS open, 
+       max(high) AS high, 
+       min(low) AS low, 
+       SUBSTRING_INDEX(GROUP_CONCAT(close), ",", -1) AS close, 
+       sum(volume) AS volume
+FROM `stocks_details` 
+WHERE stock_id = (SELECT id from stocks WHERE stock_name = "A")
+GROUP BY DATE_FORMAT(date, "%X Week: %V")
+ORDER by date ASC
+
+2 weeks (NOT IMPLEMENTED FULLY)
+SELECT MAX(date), 
+	COALESCE(open) AS open, 
+       max(high) AS high, 
+       min(low) AS low, 
+       SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, 
+       sum(volume) AS volume
+FROM `stocks_details` 
+WHERE stock_id = (SELECT id from stocks WHERE stock_name = "A")
+GROUP BY CONCAT(DATE_FORMAT(date, "%Y Week: "), ROUND(WEEKOFYEAR(date)/2)*2)
+ORDER by date ASC
+
+
+1 month 
+SELECT MAX(date), 
+	   COALESCE(open) AS open, 
+       max(high) AS high, 
+       min(low) AS low, 
+       SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, 
+       sum(volume) AS volume
+FROM `stocks_details` 
+WHERE stock_id = (SELECT id from stocks WHERE stock_name = "A")
+GROUP BY DATE_FORMAT(date, "%M, %Y")
+ORDER by date ASC
+
+
+
+
+
+SELECT date,
+       CONCAT(DATE_FORMAT(date, "%Y, Week: "), ROUND(WEEKOFYEAR(date)/2)*2) as datee
+FROM `stocks_details` 
+WHERE stock_id = (SELECT id from stocks WHERE stock_name = "A")

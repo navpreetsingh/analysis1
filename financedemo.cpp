@@ -33,58 +33,17 @@ int main(int argc, char *argv[])
     return app.exec();
 }
 
-
-//
-// Because QT uses QDateTime, while ChartDirector uses Chart::chartTime, we need
-// utilities to convert from one to another
-//
-
-// Convert from QDateTime to chartTime
-/*static double QDateTimeToChartTime(QDateTime q)
-{
-    cout << "QDateTimeToChartTime \n";
-    QDate d = q.date();
-    QTime t = q.time();
-    return Chart::chartTime(d.year(), d.month(), d.day(), t.hour(), t.minute(),
-        t.second()) + t.msec() / 1000.0;
-}*/
-
-// Convert from chartTime to QDateTime
-/*static QDateTime ChartTimeToQDateTime(double t)
-{
-    double ymdhms = floor(t);
-    int ms = (int)(floor((t - ymdhms) * 1000));
-    int ymd = Chart::getChartYMD(ymdhms);
-    int hms = (int)fmod(ymdhms, 86400);
-
-    return QDateTime(QDate(ymd / 10000, (ymd % 10000) / 100, ymd % 100),
-        QTime(hms / 3600, (hms % 3600) / 60, hms % 60, ms));
-}*/
-
 FinanceDemo::FinanceDemo(QWidget *parent) :
         QDialog(parent, Qt::Window)
 {
     cout << "FinanceDemo(Qwidget *parent) \n";    
-    //
-    // Initialize member variables
-    //
-    /*
-    m_noOfPoints = 0;
-    m_timeStamps = 0;
-    m_highData = 0;
-    m_lowData = 0;
-    m_openData = 0;
-    m_closeData = 0;
-    m_volData = 0;
-
-    m_resolution = 86400;
-
-    m_compareData = 0;
-    m_compareDataLen = 0;
-    */
+        
     //
     // Set up the GUI
     //
+
+    m_duration = 1;
+    m_compareDataLen = 0;
 
     setWindowTitle("Technical Analysis");
     resize(954, 520);
@@ -194,20 +153,18 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     // Fill the contents of the combo boxes
     //
 
-    m_TimeRange->addItem("1 minute", 1);
+    /*m_TimeRange->addItem("1 minute", 1);
     m_TimeRange->addItem("2 minutes ", 1);
     m_TimeRange->addItem("5 minutes", 1);
     m_TimeRange->addItem("15 minutes", 1);
     m_TimeRange->addItem("30 minutes", 1);
     m_TimeRange->addItem("1 hour", 1);
-    m_TimeRange->addItem("2 hours", 1);
+    m_TimeRange->addItem("2 hours", 1);*/
     
     m_TimeRange->addItem("1 day", 1);
-    m_TimeRange->addItem("2 days", 2);
     m_TimeRange->addItem("1 week", 7);
-    m_TimeRange->addItem("2 weeks", 14);
     m_TimeRange->addItem("1 month", 30);
-    m_TimeRange->setCurrentIndex(1);
+    m_TimeRange->setCurrentIndex(0);
 
     m_ChartSize->addItem("Small", "S");
     m_ChartSize->addItem("Medium", "M");
@@ -324,7 +281,7 @@ FinanceDemo::FinanceDemo(QWidget *parent) :
     connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
     
     // Load the data    
-    read_data();   
+    read_data(m_duration);   
 
     // Update the chart
     drawChart(m_ChartViewer);
@@ -378,6 +335,16 @@ void FinanceDemo::onCheckBoxChanged()
 void FinanceDemo::onComboBoxChanged(int)
 {
     cout << "onComboBoxChanged \n";
+    // The duration selected by the user
+    int duration = m_TimeRange->itemData(m_TimeRange->currentIndex()).toInt();
+    cout << "Duration: " << duration << "\n";
+    if(duration != m_duration)
+    {
+        read_data(duration);
+        if(m_compareDataLen != 0)
+            read_data_compare(duration);
+        m_duration = duration;
+    }
     drawChart(m_ChartViewer);
 }
 
@@ -393,10 +360,10 @@ void FinanceDemo::onLineEditChanged()
     QString compareKey = m_CompareWith->text();
 
     if (m_tickerKey != tickerKey) 
-        read_data();
+        read_data(m_duration);
 
     if (m_compareKey != compareKey)
-        read_data_compare();
+        read_data_compare(m_duration);
 
     if ((new_avgPeriod1 != m_avgPeriod1) || (new_avgPeriod2 != m_avgPeriod2) ||
         (m_tickerKey != tickerKey) || (m_compareKey != compareKey))
@@ -746,226 +713,6 @@ void FinanceDemo::financedemo(MultiChart *m, int mouseX)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Data source
-
-/// <summary>
-/// Get the timeStamps, highData, lowData, openData, closeData and volData.
-/// </summary>
-/// <param name="ticker">The ticker symbol for the data series.</param>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-/// <param name="durationInDays">The number of trading days to get.</param>
-/// <param name="extraPoints">The extra leading data points needed in order to
-/// compute moving averages.</param>
-/// <returns>True if successfully obtain the data, otherwise false.</returns>
-/*bool FinanceDemo::getData(const QString &ticker, QDateTime startDate, QDateTime endDate,
-                          int durationInDays, int extraPoints)
-{
-    // This method should return false if the ticker symbol is invalid. In this
-    // sample code, as we are using a random number generator for the data, all
-    // ticker symbol is allowed, but we still assumed an empty symbol is invalid.
-    if (ticker.isEmpty())
-        return false;
-
-    // In this demo, we can get 15 min, daily, weekly or monthly data depending on
-    // the time range.
-    m_resolution = 86400;
-    if (durationInDays <= 10)
-    {
-        // 10 days or less, we assume 15 minute data points are available
-        m_resolution = 900;
-
-        // We need to adjust the startDate backwards for the extraPoints. We assume
-        // 6.5 hours trading time per day, and 5 trading days per week.
-        double dataPointsPerDay = 6.5 * 3600 / m_resolution;
-        QDateTime adjustedStartDate(startDate.date().addDays(
-                -(int)(extraPoints / dataPointsPerDay * 7 / 5 + 2.9999999)));
-
-        // Get the required 15 min data
-        get15MinData(ticker, adjustedStartDate, endDate);
-    }
-    else if (durationInDays >= 4.5 * 360)
-    {
-        // 4 years or more - use monthly data points.
-        m_resolution = 30 * 86400;
-
-        // Adjust startDate backwards to cater for extraPoints
-        QDateTime adjustedStartDate(startDate.date().addMonths(-extraPoints));
-
-        // Get the required monthly data
-        getMonthlyData(ticker, adjustedStartDate, endDate);
-    }
-    else if (durationInDays >= 1.5 * 360)
-    {
-        // 1 year or more - use weekly points.
-        m_resolution = 7 * 86400;
-
-        //Note that we need to add extra points by shifting the starting weeks backwards
-        QDateTime adjustedStartDate(startDate.date().addDays(-extraPoints * 7 - 6));
-
-        // Get the required weekly data
-        getWeeklyData(ticker, adjustedStartDate, endDate);
-    }
-    else
-    {
-        // Default - use daily points
-        m_resolution = 86400;
-
-        // Adjust startDate backwards to cater for extraPoints. We multiply the days
-        // by 7/5 as we assume 1 week has 5 trading days.
-        QDateTime adjustedStartDate(startDate.date().addDays(-((extraPoints * 7 + 4) / 5 + 2)));
-
-        // Get the required daily data
-        getDailyData(ticker, adjustedStartDate, endDate);
-    }
-
-    return true;
-}
-
-/// <summary>
-/// Get 15 minutes data series into the timeStamps, highData, lowData, openData, closeData
-/// and volData arrays.
-/// </summary>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-void FinanceDemo::get15MinData(const QString &ticker, QDateTime startDate, QDateTime endDate)
-{
-    //
-    // In this demo, we use a random number generator to generate the data. In practice,
-    // you may get the data from a database or by other means. If you do not have 15
-    // minute data, you may modify the "drawChart" method below to not using 15 minute
-    // data.
-    //
-    generateRandomData(ticker, startDate, endDate, 900);
-}
-
-/// <summary>
-/// Get daily data series into the timeStamps, highData, lowData, openData, closeData and
-/// volData arrays.
-/// </summary>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-void FinanceDemo::getDailyData(const QString &ticker, QDateTime startDate, QDateTime endDate)
-{
-    //
-    // In this demo, we use a random number generator to generate the data. In practice,
-    // you may get the data from a database or by other means. Replace the code below
-    // with your own data acquisition code.
-    //
-
-    generateRandomData(ticker, startDate, endDate, 86400);
-}
-
-/// <summary>
-/// Get weekly data series into the timeStamps, highData, lowData, openData, closeData and
-/// volData arrays.
-/// </summary>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-void FinanceDemo::getWeeklyData(const QString &ticker, QDateTime startDate, QDateTime endDate)
-{
-    //
-    // In this demo, we use a random number generator to generate the data. In practice,
-    // you may get the data from a database or by other means. If you do not have weekly
-    // data, you may call "getDailyData" to get daily data first, and then call
-    // "convertDailyToWeeklyData" to convert it to weekly data, like:
-    //
-    //      getDailyData(ticker, startDate, endDate);
-    //      convertDailyToWeeklyData();
-    //
-    generateRandomData(ticker, startDate, endDate, 86400 * 7);
-}
-
-/// <summary>
-/// Get monthly data series into the timeStamps, highData, lowData, openData, closeData and
-/// volData arrays.
-/// </summary>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-void FinanceDemo::getMonthlyData(const QString &ticker, QDateTime startDate, QDateTime endDate)
-{
-    //
-    // In this demo, we use a random number generator to generate the data. In practice,
-    // you may get the data from a database or by other means. If you do not have monthly
-    // data, you may call "getDailyData" to get daily data first, and then call
-    // "convertDailyToMonthlyData" to convert it to monthly data, like:
-    //
-    //      getDailyData(ticker, startDate, endDate);
-    //      convertDailyToMonthlyData();
-    //
-    generateRandomData(ticker, startDate, endDate, 86400 * 30);
-}
-
-/// <summary>
-/// A random number generator designed to generate realistic financial data.
-/// </summary>
-/// <param name="startDate">The starting date/time for the data series.</param>
-/// <param name="endDate">The ending date/time for the data series.</param>
-/// <param name="resolution">The period of the data series.</param>
-void FinanceDemo::generateRandomData(const QString &ticker, QDateTime startDate,
-                                     QDateTime endDate, int resolution)
-{
-    // free the previous data arrays
-    delete[] m_timeStamps;
-    delete[] m_highData;
-    delete[] m_lowData;
-    delete[] m_openData;
-    delete[] m_closeData;
-    delete[] m_volData;
-
-    // The financial simulator
-    FinanceSimulator db(ticker.toUtf8().data(), QDateTimeToChartTime(startDate),
-                        QDateTimeToChartTime(endDate), resolution);
-
-    // Allocate the data arrays
-    m_noOfPoints = db.getTimeStamps().len;
-    m_timeStamps = new double[m_noOfPoints];
-    m_highData = new double[m_noOfPoints];
-    m_lowData = new double[m_noOfPoints];
-    m_openData = new double[m_noOfPoints];
-    m_closeData = new double[m_noOfPoints];
-    m_volData = new double[m_noOfPoints];
-
-    // Copy data to the data arrays
-    memcpy(m_timeStamps, db.getTimeStamps().data, m_noOfPoints * sizeof(double));
-    memcpy(m_highData, db.getHighData().data, m_noOfPoints * sizeof(double));
-    memcpy(m_lowData, db.getLowData().data, m_noOfPoints * sizeof(double));
-    memcpy(m_openData, db.getOpenData().data, m_noOfPoints * sizeof(double));
-    memcpy(m_closeData, db.getCloseData().data, m_noOfPoints * sizeof(double));
-    memcpy(m_volData, db.getVolData().data, m_noOfPoints * sizeof(double));
-}
-
-/// <summary>
-/// A utility to convert daily to weekly data.
-/// </summary>
-void FinanceDemo::convertDailyToWeeklyData()
-{
-    aggregateData(ArrayMath(DoubleArray(m_timeStamps, m_noOfPoints)).selectStartOfWeek());
-}
-
-/// <summary>
-/// A utility to convert daily to monthly data.
-/// </summary>
-void FinanceDemo::convertDailyToMonthlyData()
-{
-    aggregateData(ArrayMath(DoubleArray(m_timeStamps, m_noOfPoints)).selectStartOfMonth());
-}
-
-/// <summary>
-/// An internal method used to aggregate daily data.
-/// </summary>
-void FinanceDemo::aggregateData(ArrayMath &aggregator)
-{
-    aggregator.aggregate(DoubleArray(m_highData, m_noOfPoints), Chart::AggregateMax);
-    aggregator.aggregate(DoubleArray(m_lowData, m_noOfPoints), Chart::AggregateMin);
-    aggregator.aggregate(DoubleArray(m_openData, m_noOfPoints), Chart::AggregateFirst);
-    aggregator.aggregate(DoubleArray(m_closeData, m_noOfPoints), Chart::AggregateLast);
-    aggregator.aggregate(DoubleArray(m_volData, m_noOfPoints), Chart::AggregateSum);
-    m_noOfPoints = aggregator.aggregate(DoubleArray(m_timeStamps, m_noOfPoints),
-        Chart::AggregateFirst).len;
-}*/
-
-/////////////////////////////////////////////////////////////////////////////
 // Chart Creation
 
 /// <summary>
@@ -1078,19 +825,6 @@ static XYChart* addIndicator(FinanceChart *m, QString indicator, int height)
 }
 
 /// <summary>
-/// Creates a dummy chart to show an error message.
-/// </summary>
-/// <param name="viewer">The WinChartViewer to display the error message.</param>
-/// <param name="msg">The error message</param>
-/*static void errMsg(QChartViewer* viewer, const char *msg)
-{
-    cout << "errMsg \n";
-    MultiChart m(400, 200);
-    m.addTitle(Chart::Center, msg, "Arial", 10)->setMaxWidth(m.getWidth());
-    viewer->setChart(&m);
-}*/
-
-/// <summary>
 /// Draw the chart according to user selection and display it in the ChartViewer.
 /// </summary>
 /// <param name="viewer">The ChartViewer object to display the chart.</param>
@@ -1098,40 +832,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 {
    cout << "drawChart \n";
    delete m_ChartViewer->getChart();
-    /*// In this demo, we just assume we plot up to the latest time. So endDate is now.
-    QDateTime endDate = QDateTime::currentDateTime();
-
-    // If the trading day has not yet started (before 9:30am), or if the end date is on
-    // on Sat or Sun, we set the end date to 4:00pm of the last trading day
-    while ((endDate.time() < QTime(9, 30, 0)) || (endDate.date().dayOfWeek() >= 6)) {
-        endDate = QDateTime(endDate.date().addDays(-1), QTime(16, 0, 0));
-    }
-
-     // The duration selected by the user
-    int durationInDays = m_TimeRange->itemData(m_TimeRange->currentIndex()).toInt();
-
-    // Compute the start date by subtracting the duration from the end date.
-    QDateTime startDate = endDate;
-    if (durationInDays >= 30) {
-        // More or equal to 30 days - so we use months as the unit
-        startDate = QDateTime(QDate(endDate.date().year(), endDate.date().month(), 1
-                                    ).addMonths(-durationInDays / 30));
-    } else {
-        // Less than 30 days - use day as the unit. The starting point of the axis is
-        // always at the start of the day (9:30am). Note that we use trading days, so
-        // we skip Sat and Sun in counting the days.
-        startDate = QDateTime(endDate.date());
-        for(int i = 1; i < durationInDays; ++i) {
-            if (startDate.date().dayOfWeek() == 1) {
-                startDate = startDate.addDays(-3);
-            } else {
-                startDate = startDate.addDays(-1);
-            }
-        }
-    }*/   
-        
-    //read_data();
-   
+       
     // Get the start date and end date that are visible on the chart.
     double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
     double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() +
@@ -1161,68 +862,6 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     int extraPoints = (m_avgPeriod1 > m_avgPeriod2) ? m_avgPeriod1 : m_avgPeriod2;
     if (extraPoints < 25)
         extraPoints = 25;
-
-    // Get the data series to compare with, if any.
-    /*m_compareKey = m_CompareWith->text();
-    delete[] m_compareData;
-    m_compareData = 0;
-    if (getData(m_compareKey, startDate, endDate, durationInDays, extraPoints))
-    {
-            m_compareData = m_closeData;
-            m_compareDataLen = m_noOfPoints;
-            m_closeData = 0;
-    }*/
-
-    // The data series we want to get.
-    /*m_tickerKey = m_TickerSymbol->text();
-    if (!getData(m_tickerKey, startDate, endDate, durationInDays, extraPoints))
-    {
-            errMsg(viewer, "Please enter a valid ticker symbol");
-            return;
-    }
-
-    // We now confirm the actual number of extra points (data points that are before
-    // the start date) as inferred using actual data from the database.
-    double startChartTime = QDateTimeToChartTime(startDate);
-    for (extraPoints = 0; extraPoints < m_noOfPoints; ++extraPoints)
-    {
-        if (m_timeStamps[extraPoints] >= startChartTime)
-            break;
-    }
-
-    // Check if there is any valid data
-    if (extraPoints >= m_noOfPoints)
-    {
-        // No data - just display the no data message.
-        errMsg(viewer, "No data available for the specified time period");
-        return;
-    }
-
-    // In some finance chart presentation style, even if the data for the latest day
-    // is not fully available, the axis for the entire day will still be drawn, where
-    // no data will appear near the end of the axis.
-    int extraTrailingPoints = 0;
-    if (m_resolution <= 86400)
-    {
-        // Add extra points to the axis until it reaches the end of the day. The end
-        // of day is assumed to be 16:00 (it depends on the stock exchange).
-        double lastTime = m_timeStamps[m_noOfPoints - 1];
-        extraTrailingPoints = (int)((16 * 3600 - fmod(lastTime, 86400)) / m_resolution);
-        if (extraTrailingPoints > 0)
-        {
-            double *extendedTimeStamps = new double[m_noOfPoints + extraTrailingPoints];
-            memcpy(extendedTimeStamps, m_timeStamps, sizeof(double) * m_noOfPoints);
-            for (int i = 0; i < extraTrailingPoints; ++i)
-                extendedTimeStamps[m_noOfPoints + i] = lastTime + m_resolution * (i + 1);
-            delete[] m_timeStamps;
-            m_timeStamps = extendedTimeStamps;
-        }
-    }*/
-
-    //
-    // At this stage, all data is available. We can draw the chart as according to
-    // user input.
-    //
 
     //
     // Determine the chart size. In this demo, user can select 4 different chart sizes.
@@ -1275,34 +914,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
                DoubleArray(close + startIndex, noOfPoints), 
                DoubleArray(volume + startIndex, noOfPoints), 30);
 
-    /*// Set the data into the chart object
-    m.setData(DoubleArray(m_timeStamps, m_noOfPoints + extraTrailingPoints),
-        DoubleArray(m_highData, m_noOfPoints), DoubleArray(m_lowData, m_noOfPoints),
-        DoubleArray(m_openData, m_noOfPoints), DoubleArray(m_closeData, m_noOfPoints),
-        DoubleArray(m_volData, m_noOfPoints), extraPoints);
-
-    //
-    // We configure the title of the chart. In this demo chart design, we put the
-    // company name as the top line of the title with left alignment.
-    //
-    m.addPlotAreaTitle(Chart::TopLeft, m_tickerKey.toUtf8().data());
-
-    // We displays the current date as well as the data resolution on the next line.
-    const char *resolutionText = "";
-    if (m_resolution == 30 * 86400)
-        resolutionText = "Monthly";
-    else if (m_resolution == 7 * 86400)
-        resolutionText = "Weekly";
-    else if (m_resolution == 86400)
-        resolutionText = "Daily";
-    else if (m_resolution == 900)
-        resolutionText = "15-min";
-
-    char buffer[1024];
-    sprintf(buffer, "<*font=arial.ttf,size=8*>%s - %s chart", m.formatValue(
-        QDateTimeToChartTime(QDateTime::currentDateTime()), "mmm dd, yyyy"), resolutionText);
-    m.addPlotAreaTitle(Chart::BottomLeft, buffer);
-    */
+    
     // A copyright message at the bottom left corner the title area
     m->addPlotAreaTitle(Chart::BottomRight,
         "<*font=arial.ttf,size=8*>(c) Advanced Software Engineering");
@@ -1415,7 +1027,7 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
     viewer->setImageMap(m.getHTMLImageMap("", "", buffer));*/
 }
 
-void FinanceDemo :: read_data()
+void FinanceDemo :: read_data(int durationOfStock)
 {
     cout << "read_data \n";
     struct tm tm1;
@@ -1425,19 +1037,28 @@ void FinanceDemo :: read_data()
         Query query = conn.query();     
        
         char *s = m_TickerSymbol->text().toLocal8Bit().data();
+        cout << "Duration: " << durationOfStock << "\n";
+        /* Now SELECT */             
+        switch(durationOfStock)
+        {
+            case 1:
+                cout << "CASE 1 \n";
+                query << "SELECT date, open, high, low, close, volume from stocks_details WHERE stock_id = (SELECT id from stocks where stock_name = " << quote_only << s << " ) ORDER by date ASC";
+                break;
+            case 7:
+                cout << "CASE 7 \" \n";
+                query << "SELECT MAX(date) AS date, COALESCE(open) AS open, max(high) AS high, min(low) AS low, SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, sum(volume) AS volume FROM `stocks_details` WHERE stock_id = (SELECT id from stocks WHERE stock_name = " << quote_only << s << " ) GROUP BY DATE_FORMAT(date, \"%X Week: %V\") ORDER by date ASC";
+                break;
+        }
+                
+        //query << "SELECT date, open, close, high, low, volume FROM stocks_details WHERE stock_id = 4 ORDER by date ASC";
         
-        /* Now SELECT */        
-        query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
-        StoreQueryResult cres = query.store();        
-        if (cres.num_rows() == 0)
+        StoreQueryResult ares = query.store();
+        if (ares.num_rows() == 0)
         {
             data_len = 0;
             return;
-        }          
-        
-        int stock_id = cres[0]["id"];        
-        query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
-        StoreQueryResult ares = query.store();
+        }  
         data_len = ares.num_rows() - 1;
 
         date = new double[data_len + 1];
@@ -1453,9 +1074,26 @@ void FinanceDemo :: read_data()
             open[i] = ares[i]["open"];
             high[i] = ares[i]["high"];
             low[i] = ares[i]["low"];
-            close[i] = ares[i]["close"];
-            volume[i] = ares[i]["volume"];                        
+            close[i] = atof(ares[i]["close"]);
+            volume[i] = ares[i]["volume"]; 
+
+            cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+            cout << "Date: " << date[i] << "  "            
+                 << "Open: " << open[i] << "  " 
+                 << "High: " << high[i] << "  "
+                 << "Low: " << low[i] << "  "
+                 << "Close: " << close[i] << "  "
+                 << "Volume: " << volume[i] << "\n";
+             
+             std::cout << "date is of type: " << typeid(date[i]).name() << "   "
+                       << "open is of type: " << typeid(open[i]).name() << "   "
+                       << "high is of type: " << typeid(high[i]).name() << "   "
+                       << "low is of type: " << typeid(low[i]).name() << "   "
+                       << "close is of type: " << typeid(close[i]).name() << "   "
+                       << "volume is of type: " << typeid(volume[i]).name() << "   "
+                     <<std::endl;                       
         }        
+        cout << "data len:" << data_len << "\n";
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
         cout << "BAD QUERY 1" << "\n";
@@ -1474,7 +1112,7 @@ void FinanceDemo :: read_data()
 
 }
 
-void FinanceDemo :: read_data_compare()
+void FinanceDemo :: read_data_compare(int durationOfStock)
 {
     cout << "read_data_compare \n";
     
@@ -1484,18 +1122,14 @@ void FinanceDemo :: read_data_compare()
         Query query = conn.query();         
         char *s =  m_CompareWith ->text().toLocal8Bit().data();
         
-        /* Now SELECT */        
-        query << "SELECT id FROM stocks where stock_name = " << quote_only << s;
-        StoreQueryResult cres = query.store();        
-        if (cres.num_rows() == 0)
+        /* Now SELECT */            
+        query << "SELECT date, open, close, high, low, volume FROM stocks_details LEFT JOIN stocks on stocks_details.stock_id = stocks.id where stocks.stock_name=" << quote_only << s ;
+        StoreQueryResult ares = query.store();
+        if (ares.num_rows() == 0)
         {
            m_compareDataLen = 0;
             return;
-        }          
-        
-        int stock_id = cres[0]["id"];        
-        query << "SELECT * FROM stocks_details where stock_id = " << stock_id ;
-        StoreQueryResult ares = query.store();
+        }
         m_compareDataLen = ares.num_rows() - 1;
 
         m_compareData = new double[m_compareDataLen + 1];
