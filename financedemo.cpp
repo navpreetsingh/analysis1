@@ -840,9 +840,11 @@ void FinanceDemo::drawChart(QChartViewer *viewer)
 
     // Get the array indexes that corresponds to the visible start and end dates
     int startIndex = (int)floor(Chart::bSearch(DoubleArray(date, data_len), viewPortStartDate));
-    cout << "Start Index: " << startIndex << "\n";
     int endIndex = (int)ceil(Chart::bSearch(DoubleArray(date, data_len), viewPortEndDate));
     int noOfPoints = endIndex - startIndex + 1;        
+
+    cout << "Start Index: " << startIndex << "End Index: " << endIndex << 
+    "No. of Points: " << noOfPoints << "\n";
 
     // The first moving average period selected by the user.
     m_avgPeriod1 = m_MovAvg1->text().toInt();
@@ -1049,9 +1051,13 @@ void FinanceDemo :: read_data(int durationOfStock)
                 cout << "CASE 7 \" \n";
                 query << "SELECT MAX(date) AS date, COALESCE(open) AS open, max(high) AS high, min(low) AS low, SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, sum(volume) AS volume FROM `stocks_details` WHERE stock_id = (SELECT id from stocks WHERE stock_name = " << quote_only << s << " ) GROUP BY DATE_FORMAT(date, \"%X Week: %V\") ORDER by date ASC";
                 break;
+            case 30:
+                cout << "CASE 30 \n";
+                query << "SELECT MAX(date) AS date, COALESCE(open) AS open, max(high) AS high, min(low) AS low, SUBSTRING_INDEX(GROUP_CONCAT(close), ',', -1) AS close, sum(volume) AS volume FROM `stocks_details` WHERE stock_id = (SELECT id from stocks WHERE stock_name = " << quote_only << s << ") GROUP BY DATE_FORMAT(date, \"%M, %Y\") ORDER by date ASC";
+
         }
                 
-        //query << "SELECT date, open, close, high, low, volume FROM stocks_details WHERE stock_id = 4 ORDER by date ASC";
+        
         
         StoreQueryResult ares = query.store();
         if (ares.num_rows() == 0)
@@ -1060,7 +1066,7 @@ void FinanceDemo :: read_data(int durationOfStock)
             return;
         }  
         data_len = ares.num_rows() - 1;
-
+        
         date = new double[data_len + 1];
         open = new double[data_len + 1];
         high = new double[data_len + 1];
@@ -1075,7 +1081,9 @@ void FinanceDemo :: read_data(int durationOfStock)
             high[i] = ares[i]["high"];
             low[i] = ares[i]["low"];
             close[i] = atof(ares[i]["close"]);
-            volume[i] = ares[i]["volume"]; 
+            volume[i] = ares[i]["volume"];
+
+            /*cc++; 
 
             cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
             cout << "Date: " << date[i] << "  "            
@@ -1091,9 +1099,11 @@ void FinanceDemo :: read_data(int durationOfStock)
                        << "low is of type: " << typeid(low[i]).name() << "   "
                        << "close is of type: " << typeid(close[i]).name() << "   "
                        << "volume is of type: " << typeid(volume[i]).name() << "   "
-                     <<std::endl;                       
+                     <<std::endl;      */                 
         }        
-        cout << "data len:" << data_len << "\n";
+        /*cout << "data len:" << data_len << "\n";
+        cout << "CC: " << cc << "\n";
+        cout << "First Date: " << date[0] << " Last Date: " << date [data_len] << "\n";*/
     } catch (BadQuery er) { // handle any connection or
         // query errors that may come up
         cout << "BAD QUERY 1" << "\n";
