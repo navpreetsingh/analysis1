@@ -1082,7 +1082,9 @@ void FinanceDemo :: read_data(int durationOfStock)
             low[i] = ares[i]["low"];
             close[i] = atof(ares[i]["close"]);
             volume[i] = ares[i]["volume"];
-
+        }
+        
+       
             /*cc++; 
 
             cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
@@ -1100,7 +1102,7 @@ void FinanceDemo :: read_data(int durationOfStock)
                        << "close is of type: " << typeid(close[i]).name() << "   "
                        << "volume is of type: " << typeid(volume[i]).name() << "   "
                      <<std::endl;      */                 
-        }        
+                
         /*cout << "data len:" << data_len << "\n";
         cout << "CC: " << cc << "\n";
         cout << "First Date: " << date[0] << " Last Date: " << date [data_len] << "\n";*/
